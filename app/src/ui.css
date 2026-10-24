@@ -1,0 +1,19 @@
+body{margin:0;background:var(--krono-bg);color:var(--krono-text);font-family:var(--krono-font-sans)}
+.card{background:var(--krono-surface);border:1px solid var(--krono-border);border-radius:var(--krono-radius-lg);box-shadow:var(--krono-shadow);padding:20px}
+.muted{color:var(--krono-text-muted)}
+.btn{display:inline-flex;align-items:center;gap:8px;height:38px;padding:0 14px;border-radius:var(--krono-radius-md);border:1px solid var(--krono-border);background:transparent;color:var(--krono-text);font:600 13px var(--krono-font-sans);cursor:pointer;transition:background var(--krono-duration-fast)}
+.btn:hover:not(:disabled){background:var(--krono-surface-muted)}
+.btn:disabled,.nav:disabled{opacity:.45;cursor:not-allowed}
+.btn:focus-visible,.input:focus-visible,.nav:focus-visible{outline:2px solid var(--krono-focus);outline-offset:2px}
+.btn-primary{background:var(--krono-brand);border-color:var(--krono-brand);color:#fff}
+.btn-primary:hover:not(:disabled){background:var(--krono-brand-hover)}
+[data-theme=dark] .btn-primary,[data-theme=dark] .nav.on{color:#06281b}
+.btn-danger{background:var(--krono-danger);border-color:var(--krono-danger);color:#fff}
+[data-theme=dark] .btn-danger{color:#2a0707}
+.input{width:100%;box-sizing:border-box;height:40px;padding:0 12px;border-radius:var(--krono-radius-md);border:1px solid var(--krono-border);background:var(--krono-surface);color:var(--krono-text);font:inherit}
+textarea.input{height:96px;padding:10px 12px;resize:none}
+.badge{display:inline-flex;align-items:center;padding:2px 10px;border-radius:999px;font-size:11px;font-weight:600;background:var(--krono-brand-soft);color:var(--krono-brand)}
+.nav{display:flex;align-items:center;gap:12px;width:100%;height:42px;padding:0 12px;border:0;border-radius:var(--krono-radius-md);background:transparent;color:var(--krono-text-muted);font:600 14px var(--krono-font-sans);cursor:pointer;text-align:left}
+.nav:hover:not(:disabled){background:var(--krono-surface-muted)}
+.nav.on{background:var(--krono-brand);color:#fff}
+.row{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--krono-border)}
