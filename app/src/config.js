@@ -4,9 +4,10 @@ export const CONFIG = {
   API_BASE: 'http://localhost/krono/website/api', // Laragon; https in production
   HEARTBEAT_S: 15,
   PING_FAILS_BEFORE_OFFLINE: 3,
-  IDLE_WARNING_S: 10,                       // 10 min: warning
-  IDLE_STOP_S: 720,                          // 12 min: timers stop (at last activity)
+  IDLE_WARNING_S: 180,                       // 3 min: warning
+  IDLE_STOP_S: 120,                          // 2 min: timers stop (at last activity)
   RESUME_WINDOW_MIN: 30,                     // offline Resume auto-start window
   WEBSITE_URL: 'http://localhost/krono/website/public', // Laragon; real domain later
+  TOAST_SECONDS: 10,                         // message lifetime (pauses on hover)
   WORKSPACE_TZ: 'Asia/Dhaka',                // defines "day" for draft rule
 };

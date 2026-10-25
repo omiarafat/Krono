@@ -31,6 +31,7 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
+      backgroundThrottling: false, // keep 1 s timers running when minimized
     },
   });
   win.setMenuBarVisibility(false);

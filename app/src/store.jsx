@@ -1,5 +1,7 @@
 import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { CONFIG } from './config.js';
+import { tmz as tm, dayKey } from './time.js';
+import { nowMs } from './clock.js';
 
 const Ctx = createContext(null);
 export const useApp = () => useContext(Ctx);
@@ -11,21 +13,23 @@ export const PROJECTS = [
 ];
 const p2 = (n) => String(Math.floor(n)).padStart(2, '0');
 export const fmt = (s) => { s = Math.max(0, Math.floor(s)); return `${p2(s / 3600)}:${p2((s % 3600) / 60)}:${p2(s % 60)}`; };
-export const fmtHM = (s) => `${Math.floor(s / 3600)}h ${p2((s % 3600) / 60)}m`;
+export const fmtHM = (s) => { const h = Math.floor(s / 3600); const m = p2((s % 3600) / 60); return h > 0 ? `${h}h ${m}m` : `${Number(m)}m`; }; // 40m, 1h 00m, 1h 30m
 export const fmtDur = (s, sec) => `${Math.floor(s / 60)}m${sec ? ` ${p2(s % 60)}s` : ''}`;
-const tm = (ms) => new Date(ms).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-const dayKey = (ts) => new Date(ts).toLocaleDateString('en-CA', { timeZone: CONFIG.WORKSPACE_TZ });
 
 const KEY = 'krono-mock-v3';
+const BEAT = 'krono-beat'; // last time the app was alive (for crash / closed-app recovery)
 const load = () => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch { return {}; } };
-const t0 = () => Date.now();
+const t0 = () => nowMs();
 const pauseAt = (list, ts) => list.map((t) => (t.since ? { ...t, acc: t.acc + Math.max(0, ts - t.since) / 1000, since: null, status: 'paused', pausedAt: ts } : t));
 
 export function AppProvider({ children }) {
   const init = load();
+  const beat = Number(localStorage.getItem(BEAT)) || 0;
+  const closedAt = init.tasks?.some((t) => t.since) && t0() - beat > 30000 ? beat : null; // app was closed while a timer ran
+  const startNote = useRef(closedAt);
   const [user, setUser] = useState(init.user || null);
   const [session, setSession] = useState(init.session || { status: 'out', signedInAt: null, breaks: [] });
-  const [tasks, setTasks] = useState(init.tasks || []);
+  const [tasks, setTasks] = useState(closedAt ? pauseAt(init.tasks, closedAt) : init.tasks || []);
   const [logs, setLogs] = useState(init.logs || []);
   const [theme, setTheme] = useState(init.theme || 'system');
   const [offlineLog, setOfflineLog] = useState(init.offlineLog || []);
@@ -34,7 +38,7 @@ export function AppProvider({ children }) {
   const [sysDark, setSysDark] = useState(matchMedia('(prefers-color-scheme: dark)').matches);
   const [now, setNow] = useState(t0());
   const [online, setOnline] = useState(navigator.onLine);
-  const [toast, setToast] = useState(null);
+  const [toasts, setToasts] = useState([]);
   const [stopId, setStopId] = useState(null);
   const [pendingStart, setPendingStart] = useState(null);
   const [pendingSignOut, setPendingSignOut] = useState(false);
@@ -43,11 +47,25 @@ export function AppProvider({ children }) {
   const offlineSince = useRef(null); const slept = useRef(false); const R = useRef({});
   R.current = { tasks, session, resumeReq };
 
-  const notify = (kind, title, small) => setToast({ kind, title, small });
+  const notify = (kind, title, small) => setToasts((l) => [...l.slice(-3), { id: crypto.randomUUID(), kind, title, small }]);
   const guard = (what) => (online ? true : (notify('error', 'You are offline', `Connect to the internet to ${what}.`), false));
   const startRaw = (id, ts = t0()) => setTasks((p) => pauseAt(p, ts).map((t) => (t.id === id ? { ...t, since: ts, status: 'running' } : t)));
 
-  useEffect(() => { const i = setInterval(() => setNow(t0()), 1000); return () => clearInterval(i); }, []);
+  useEffect(() => {
+    if (startNote.current) { notify('info', 'Krono was closed', `Krono was closed from ${tm(startNote.current)}. Your timer was paused at that time.`); startNote.current = null; }
+  }, []);
+  const lastTick = useRef(t0()); const sleepAt = useRef(null);
+  useEffect(() => {
+    const i = setInterval(() => {
+      const n = t0(); const last = lastTick.current; const gap = n - last; lastTick.current = n; setNow(n);
+      localStorage.setItem(BEAT, String(n));
+      if ((gap > 20000 || gap < -2000) && R.current.tasks.some((t) => t.since)) { // PC slept / froze / clock changed
+        const at = Math.min(last, n); setTasks((p) => pauseAt(p, at));
+        notify('info', gap < 0 ? 'The PC clock changed' : 'Your PC was paused or asleep', `Your timer was paused at ${tm(at)}. Resume it when you are ready.`);
+      }
+    }, 1000);
+    return () => clearInterval(i);
+  }, []);
   useEffect(() => {
     const mq = matchMedia('(prefers-color-scheme: dark)'); const f = () => setSysDark(mq.matches);
     const off = () => { const ts = t0(); offlineSince.current = ts; setOnline(false); setTasks((p) => pauseAt(p, ts)); }; // timer stops when offline begins
@@ -70,7 +88,6 @@ export function AppProvider({ children }) {
   useEffect(() => { localStorage.setItem(KEY, JSON.stringify({ user, session, tasks, logs, theme, offlineLog, lastActive, noticeSeen })); }, [user, session, tasks, logs, theme, offlineLog, lastActive, noticeSeen]);
   const dark = theme === 'dark' || (theme === 'system' && sysDark);
   useEffect(() => { document.body.dataset.theme = dark ? 'dark' : 'light'; window.krono?.setTheme(theme); }, [dark, theme]);
-  useEffect(() => { if (!toast) return; const i = setTimeout(() => setToast(null), 4500); return () => clearTimeout(i); }, [toast]);
 
   const today = dayKey(now);
   const isOld = (t) => t.status !== 'running' && dayKey(t.pausedAt || t.createdAt || now) !== today; // carried-over draft
@@ -79,7 +96,7 @@ export function AppProvider({ children }) {
   const end = session.status === 'out' ? session.signedOutAt || session.signedInAt : now;
   const gross = session.signedInAt ? Math.max(0, (end - session.signedInAt) / 1000) : 0;
   const offlineTotal = offlineLog.reduce((a, o) => a + (o.end - o.start) / 1000, 0) + (offlineSince.current ? (now - offlineSince.current) / 1000 : 0);
-  const stats = { gross, net: Math.max(0, gross - brk), brk, breakCount: session.breaks.length + (session.status === 'break' ? 1 : 0), saved: logs.reduce((a, l) => a + l.secs, 0), offlineTotal, offlineCount: offlineLog.length + (offlineSince.current ? 1 : 0) };
+  const stats = { gross, net: Math.max(0, gross - brk), brk, breakCount: session.breaks.length + (session.status === 'break' ? 1 : 0), saved: logs.filter((l) => dayKey(l.at) === today).reduce((a, l) => a + l.secs, 0), offlineTotal, offlineCount: offlineLog.length + (offlineSince.current ? 1 : 0) };
   const hasUnsaved = tasks.some((t) => elapsed(t) > 0);
   const oldDrafts = tasks.filter((t) => isOld(t) && elapsed(t) > 0);
 
@@ -138,8 +155,10 @@ export function AppProvider({ children }) {
     idleStop: (ts) => { setTasks((p) => pauseAt(p, ts)); setIdleNote({ from: ts }); },
     idleBack: () => { if (idleNote) { notify('info', 'You were idle', `No mouse or keyboard activity since ${tm(idleNote.from)}. Your timer was paused at that time.`); setIdleNote(null); } },
     touch: setLastActive, setSlept: (v) => { slept.current = v; },
+    onSuspend: () => { slept.current = true; if (R.current.tasks.some((t) => t.since)) { sleepAt.current = t0(); setTasks((p) => pauseAt(p, sleepAt.current)); } },
+    onResume: () => { const at = sleepAt.current; sleepAt.current = null; if (at) notify('info', 'Your PC was asleep', `From ${tm(at)} to ${tm(t0())}. Your timer was paused at ${tm(at)}.`); },
     setTheme, notify, guard, setStopId, setPendingStart, setPendingSignOut, setNoticeSeen,
   };
   useEffect(() => { if (pendingSignOut === true && !stopId && !hasUnsaved) { signOut(); setPendingSignOut(false); } });
-  return <Ctx.Provider value={{ user, session, tasks, logs, theme, dark, online, stats, toast, stopId, hasUnsaved, oldDrafts, isOld, resumeReq, pendingSignOut, noticeSeen, elapsed, ...A, clearToast: () => setToast(null) }}>{children}</Ctx.Provider>;
+  return <Ctx.Provider value={{ user, session, tasks, logs, theme, dark, online, stats, toasts, stopId, hasUnsaved, oldDrafts, isOld, resumeReq, pendingSignOut, noticeSeen, elapsed, ...A, dismissToast: (id) => setToasts((l) => l.filter((x) => x.id !== id)) }}>{children}</Ctx.Provider>;
 }
