@@ -2,6 +2,8 @@ import { useRef, useState } from 'react';
 import { CONFIG } from './config.js';
 import { useApp, PROJECTS, fmt, fmtHM, fmtDur } from './store.jsx';
 import { Ico } from './icons.jsx';
+import { nowMs } from './clock.js';
+import { tmz as tm, dmz as dy, hourz } from './time.js';
 
 export const Logo = ({ cls }) => { const { dark } = useApp(); return <img className={cls} src={`./brand/Krono_Logo_${dark ? 'Dark' : 'Light'}.svg`} alt="Krono" />; };
 const Notice = ({ icon, title, kind = '', children }) => (
@@ -17,8 +19,6 @@ export const Modal = ({ icon, title, copy, wide, onClose, actions, children }) =
     </div>
   </div>
 );
-const tm = (ms) => new Date(ms).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-const dy = (ms) => new Date(ms).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
 const Heading = ({ eyebrow, title, text, children }) => (
   <div className="page-heading"><div><div className="eyebrow">{eyebrow}</div><h1>{title}</h1><p>{text}</p></div>{children}</div>
 );
@@ -73,11 +73,11 @@ export function Auth() {
 export function Dashboard({ go }) {
   const { user, session, tasks, stats, elapsed } = useApp();
   const run = tasks.find((t) => t.status === 'running'); const first = user.name.split(' ')[0];
-  const h = new Date().getHours(); const hi = h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening';
+  const h = hourz(nowMs()); const hi = h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening';
   const Metric = ({ l, i, v, s }) => <div className="metric"><div className="between"><div className="metric-label">{l}</div><div className="metric-icon"><Ico n={i} /></div></div><div className="metric-value">{v}</div><div className="metric-foot">{s}</div></div>;
   const status = { out: 'Signed out', working: 'Working', break: 'On break' }[session.status];
   return (<>
-    <Heading eyebrow={`TODAY · ${new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }).toUpperCase()}`} title={`${hi}, ${first}`} text="Here is your workday at a glance." />
+    <Heading eyebrow={`TODAY · ${dy(nowMs()).toUpperCase()}`} title={`${hi}, ${first}`} text="Here is your workday at a glance." />
     <div className="grid3" style={{ marginBottom: 16 }}>
       <Metric l="Net work time" i="clock" v={fmtHM(stats.net)} s="Today · after breaks" />
       <Metric l="Saved task time" i="timer" v={fmtHM(stats.saved)} s="Submitted time logs" />
@@ -89,13 +89,14 @@ export function Dashboard({ go }) {
         <div className="stat-line"><span className="muted">Signed in</span><strong>{session.signedInAt && session.status !== 'out' ? tm(session.signedInAt) : 'Not signed in'}</strong></div>
         <div className="stat-line"><span className="muted">Current status</span><strong>{status}</strong></div>
         <div className="stat-line"><span className="muted">Breaks completed</span><strong>{session.breaks.length} breaks · {fmtDur(stats.brk)}</strong></div>
-        <div style={{ marginTop: 16 }}><a className="inline-link" href="#" onClick={(e) => { e.preventDefault(); go('attendance'); }}>View Attendance →</a></div></section>
+        <div style={{ marginTop: 16 }}><a className="inline-link" href="#" onClick={(e) => { e.preventDefault(); go('work'); }}>View Attendance →</a></div></section>
       <section className="panel"><div className="between"><div><div className="panel-title"><Ico n="timer" /><span>Current task</span></div><p className="panel-subtitle">Live timer status</p></div>
         <span className="badge">{run ? <><span className="dot running" /> Running</> : 'No timer'}</span></div>
         <div style={{ marginTop: 20, fontSize: 15, fontWeight: 780 }}>{run ? run.title : 'No task is running'}</div><div className="muted small" style={{ marginTop: 5 }}>{run ? run.project : 'Start a task from Time Tracking.'}</div>
         <div className="between" style={{ marginTop: 21 }}><div><div className="muted tiny">ELAPSED TIME</div><div style={{ fontSize: 26, fontWeight: 800, letterSpacing: -1, marginTop: 5 }}>{run ? fmt(elapsed(run)) : '00:00:00'}</div></div>
-          <a className="inline-link" href="#" onClick={(e) => { e.preventDefault(); go('tracking'); }}>Manage Timer →</a></div></section>
+          <a className="inline-link" href="#" onClick={(e) => { e.preventDefault(); go('work'); }}>Manage Timer →</a></div></section>
     </div>
+    <div style={{ marginBottom: 16 }}><BreakSummary /></div>
     <section className="panel" style={{ marginBottom: 16 }}>
       <div className="between" style={{ marginBottom: 14 }}><div><div className="panel-title"><Ico n="external" /><span>Manage more on Krono Website</span></div><p className="panel-subtitle">Projects, team and reporting live in your browser.</p></div>
         <button className="btn primary" onClick={() => window.open(CONFIG.WEBSITE_URL)}><Ico n="external" /> View Website</button></div>
@@ -108,17 +109,9 @@ export function Dashboard({ go }) {
 
 export function Attendance() {
   const { session: s, stats, signIn, signOut, breakStart, breakEnd, hasUnsaved, setPendingSignOut } = useApp();
-  const Hist = ({ i, a, b, d, first }) => (
-    <div className="between" style={{ padding: '12px 0', borderTop: first ? 0 : '1px solid var(--border)' }}><div className="row"><span className="history-no">{i}</span><div className="history-copy"><strong>Break #{i}</strong><small>{dy(a)} · {tm(a)} – {b ? tm(b) : 'In progress'}</small></div></div><span className="duration">{d}</span></div>);
-  const history = (title, sub) => (
-    <section className="panel"><div className="panel-title"><Ico n="history" /><span>{title}</span></div><p className="panel-subtitle">{sub}</p>
-      {s.breaks.map((b, i) => <Hist key={i} i={i + 1} a={b.start} b={b.end} d={fmtDur((b.end - b.start) / 1000)} first={i === 0} />)}
-      {s.status === 'break' && <Hist i={s.breaks.length + 1} a={s.breakStart} d={fmtDur(stats.brk - s.breaks.reduce((x, b) => x + (b.end - b.start) / 1000, 0), true)} first={!s.breaks.length} />}
-      {!s.breaks.length && s.status !== 'break' && <p className="muted small" style={{ marginTop: 14 }}>No breaks recorded yet.</p>}
-      <div className="stat-line" style={{ marginTop: 8, borderTop: '1px solid var(--border)' }}><span className="muted">Offline time</span><strong>{fmtDur(stats.offlineTotal)} · {stats.offlineCount} times</strong></div></section>);
-  const head = <Heading eyebrow="LIVE WORK CONTROL" title="Attendance" text="Control your work session and review today’s break records." />;
+  const head = <Heading eyebrow="LIVE WORK CONTROL" title="Attendance & Time Tracking" text="Control your work session and track one task at a time." />;
   if (s.status === 'out') return (<>{head}
-    <section className="panel empty-state" style={{ minHeight: 430 }}><div className="empty-inner"><div className="empty-art"><Ico n="calendar" /></div>
+    <section className="panel empty-state" style={{ minHeight: 280 }}><div className="empty-inner"><div className="empty-art"><Ico n="calendar" /></div>
       <h2>You’re not signed in</h2><p>Sign in to begin today’s attendance session. Krono will record the server timestamp for your session.</p>
       <button className="btn primary" style={{ minWidth: 160 }} onClick={signIn}><Ico n="checkCircle" /> Sign In</button>
       <div className="helper" style={{ marginTop: 12 }}>Sign Out and Break controls appear after a successful sign in.</div></div></section></>);
@@ -127,7 +120,7 @@ export function Attendance() {
     <div className="grid2" style={{ marginBottom: 16 }}>
       {br ? <section className="panel"><div className="between"><div className="panel-title"><Ico n="coffee" /><span>Break in progress</span></div><p className="panel-subtitle">Attendance session remains active.</p></div>
         <div className="attendance-big">On Break</div><div className="muted small">Break #{s.breaks.length + 1} · Started at {tm(s.breakStart)}</div><div className="divider" />
-        <div className="metric-label">Current break duration</div><div style={{ fontSize: 30, fontWeight: 800, marginTop: 8 }}>{fmt((Date.now() - s.breakStart) / 1000)}</div></section>
+        <div className="metric-label">Current break duration</div><div style={{ fontSize: 30, fontWeight: 800, marginTop: 8 }}>{fmt((nowMs() - s.breakStart) / 1000)}</div></section>
       : <section className="panel"><div className="between"><div className="panel-title"><Ico n="attendance" /><span>Current session</span></div><p className="panel-subtitle">Attendance controls</p></div>
         <div className="attendance-big">Working</div><div className="muted small">Signed in today at {tm(s.signedInAt)}</div><div className="divider" />
         <div className="grid2"><div><div className="metric-label">Net work time</div><div style={{ fontSize: 22, fontWeight: 800, marginTop: 8 }}>{fmtHM(stats.net)}</div></div><div><div className="metric-label">Gross time</div><div style={{ fontSize: 22, fontWeight: 800, marginTop: 8 }}>{fmtHM(stats.gross)}</div></div></div></section>}
@@ -140,7 +133,6 @@ export function Attendance() {
         {br ? <div style={{ marginTop: 14 }}><Notice icon="info" kind="warning" title="Task timer paused">Your running task was automatically paused when this break started. It will not resume automatically.</Notice></div>
           : <div className="helper">All actions are recorded with authoritative server timestamps.</div>}</section>
     </div>
-    {br ? history('Today’s break history', 'Completed breaks and the active break are shown.') : history('Break summary', 'Each break is recorded separately.')}
   </>);
 }
 
@@ -157,7 +149,6 @@ export function Tracking() {
   const openAdd = () => { if (blocked) return; if (guard('add a task')) setAdd(true); };
   const stopT = stopId && byId(stopId); const swT = sw && byId(sw); const rmT = rm && byId(rm);
   return (<>
-    <Heading eyebrow="LIVE TIMER CONTROL" title="Time Tracking" text="Build your task list and track one task at a time."><div className="actions"><span className="badge"><span className="dot" /> {online ? 'Online' : 'Offline'}</span></div></Heading>
     {tasks.length === 0 ? (
       <section className="panel empty-state"><div className="empty-inner"><div className="empty-art"><Ico n="timer" /></div><h2>No tasks in your tracking list</h2>
         <p>Add an incomplete project task to your list. Adding a task does not start its timer.</p>
@@ -168,8 +159,8 @@ export function Tracking() {
         <button className="btn primary" disabled={blocked} onClick={openAdd}><Ico n="plus" /> Add Task</button></div>
       {blocked && <div style={{ marginBottom: 14 }}><Notice icon="warning" kind="warning" title="Save earlier drafts first">Tasks from a previous day are drafts. Save each one with a description before adding new tasks.</Notice></div>}
       {!online && <div style={{ marginBottom: 14 }}><Notice icon="warning" kind="warning" title="You are offline">Running timers stopped when the connection was lost. Start, sign in and add-task actions are unavailable until you reconnect.</Notice></div>}
-      {!can && <div style={{ marginBottom: 14 }}><Notice icon="info" kind="warning" title="Sign in to start a timer">Open Attendance and sign in before starting a task. Timers cannot run during a break.</Notice></div>}
-      <div className="task-list" style={{ marginBottom: 16 }}>{tasks.map((t) => { const e = elapsed(t); const old = isOld(t) && e > 0; const lab = old ? 'Draft' : { running: 'Running', paused: 'Paused', idle: 'Not started' }[t.status]; return (
+      {!can && <div style={{ marginBottom: 14 }}>{session.status === 'break' ? <Notice icon="coffee" kind="warning" title="Break in progress">Start and Resume are paused until you end your break. Your task stays paused.</Notice> : <Notice icon="info" kind="warning" title="Sign in to start a timer">Use Sign In above before starting a task. Timers cannot run during a break.</Notice>}</div>}
+      <section className="panel" style={{ padding: 14, marginBottom: 16 }}><div className="task-list">{tasks.map((t) => { const e = elapsed(t); const old = isOld(t) && e > 0; const lab = old ? 'Draft' : { running: 'Running', paused: 'Paused', idle: 'Not started' }[t.status]; return (
         <div className="task-row" key={t.id}>
           <div className="task-main"><span className={`dot ${t.status === 'idle' ? '' : t.status}`} /><div className="task-detail"><div className="task-title">{t.title}</div>
             <div className="task-project">{t.project} <span style={{ padding: '0 4px' }}>·</span><span className="badge gray">{lab}</span>{t.draft && <span className="badge warning" style={{ marginLeft: 6 }}>Not saved yet</span>}{resumeReq?.id === t.id && <span className="badge warning" style={{ marginLeft: 6 }}>Resumes when online</span>}</div></div></div>
@@ -180,7 +171,7 @@ export function Tracking() {
                 : <button className="btn btn-sm primary" disabled={!can} onClick={() => begin(t)}><Ico n="play" /> {t.status === 'paused' ? 'Resume' : 'Start'}</button>}
               {e > 0 && <button className={`btn btn-sm ${t.status === 'running' ? 'danger' : ''}`} onClick={() => ask(t.id)}><Ico n="stop" /> Stop</button>}
               <button className="btn btn-sm btn-icon" title="Remove" aria-label="Remove task" onClick={() => (e > 0 ? setRm(t.id) : remove(t.id))}><Ico n="trash" /></button></>)}
-          </div></div>); })}</div>
+          </div></div>); })}</div></section>
       <Notice icon="info" title="Timer state is saved safely">Pause keeps the current work session as a draft. Stop requires a non-empty work description; only a successful save removes that item from this list.</Notice>
     </>)}
     {add && <Modal icon="folder" title="Add task to tracking list" copy="Choose a project, then select one of its tasks that is not Completed." onClose={() => setAdd(false)}
@@ -216,3 +207,19 @@ export function Settings() {
       <div style={{ marginTop: 18 }}><Notice icon="info" title="Theme applies immediately">Only the existing Krono Light/Dark tokens are used. No additional settings are included in this plan.</Notice></div></section>
   </>);
 }
+
+export function BreakSummary() {
+  const { session: s, stats } = useApp();
+  const Hist = ({ i, a, b, d, first }) => (
+    <div className="between" style={{ padding: '12px 0', borderTop: first ? 0 : '1px solid var(--border)' }}><div className="row"><span className="history-no">{i}</span><div className="history-copy"><strong>Break #{i}</strong><small>{dy(a)} · {tm(a)} – {b ? tm(b) : 'In progress'}</small></div></div><span className="duration">{d}</span></div>);
+  const history = (title, sub) => (
+    <section className="panel"><div className="panel-title"><Ico n="history" /><span>{title}</span></div><p className="panel-subtitle">{sub}</p>
+      {s.breaks.map((b, i) => <Hist key={i} i={i + 1} a={b.start} b={b.end} d={fmtDur(((b.end ?? nowMs()) - b.start) / 1000)} first={i === 0} />)}
+      {s.status === 'break' && <Hist i={s.breaks.length + 1} a={s.breakStart} d={fmtDur(stats.brk - s.breaks.reduce((x, b) => x + ((b.end ?? nowMs()) - b.start) / 1000, 0), true)} first={!s.breaks.length} />}
+      {!s.breaks.length && s.status !== 'break' && <p className="muted small" style={{ marginTop: 14 }}>No breaks recorded yet.</p>}
+      <div className="stat-line" style={{ marginTop: 8, borderTop: '1px solid var(--border)' }}><span className="muted">Offline time</span><strong>{fmtDur(stats.offlineTotal)} · {stats.offlineCount} times</strong></div></section>);
+  const br = s.status === 'break';
+  return history(br ? 'Today’s break history' : 'Break summary', br ? 'Completed breaks and the active break are shown.' : 'Each break is recorded separately.');
+}
+
+export const Work = () => (<><Attendance /><Tracking /></>);
