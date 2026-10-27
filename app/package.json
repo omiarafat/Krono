@@ -26,10 +26,30 @@
   "build": {
     "appId": "com.krono.desktop",
     "productName": "Krono Desktop",
-    "directories": { "output": "release" },
-    "files": ["dist/**", "electron/**", "package.json"],
-    "win": { "target": "nsis", "icon": "build/icon.ico" },
-    "nsis": { "oneClick": false, "allowToChangeInstallationDirectory": true },
-    "protocols": [{ "name": "Krono", "schemes": ["krono"] }]
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**",
+      "electron/**",
+      "build/icon.png",
+      "package.json"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "build/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    },
+    "protocols": [
+      {
+        "name": "Krono",
+        "schemes": [
+          "krono"
+        ]
+      }
+    ]
   }
 }
