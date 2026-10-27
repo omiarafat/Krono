@@ -1,0 +1,32 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<style>
+:root{--bg:#ffffff;--fg:#14231b;--mut:#52665b;--acc:#0b7a52;--bd:#cfe3d8}
+@media (prefers-color-scheme: dark){:root{--bg:#0f1f17;--fg:#e8f4ee;--mut:#9db8aa;--acc:#3ddc97;--bd:#1f3a2c}}
+html,body{margin:0;height:100%;overflow:hidden;font-family:'Segoe UI',Inter,system-ui,sans-serif}
+body{position:relative;padding-right:40px!important;background:var(--bg);color:var(--fg);box-sizing:border-box;border:1px solid var(--bd);display:flex;gap:12px;align-items:center;padding:14px 16px}
+img{width:36px;height:36px;flex:none}
+h1{font-size:14px;margin:0 0 4px;font-weight:600}
+p{font-size:12.5px;line-height:1.4;margin:0;color:var(--mut)}
+button{position:absolute;top:6px;right:6px;width:26px;height:26px;display:flex;align-items:center;justify-content:center;border:0;border-radius:6px;background:transparent;color:var(--mut);cursor:pointer}
+button:hover{background:var(--bd);color:var(--fg)}
+button:focus-visible{outline:2px solid var(--acc)}
+b{color:var(--acc);font-variant-numeric:tabular-nums}
+</style></head>
+<body>
+<button type="button" id="x" aria-label="Close"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M3 3l8 8M11 3l-8 8"/></svg></button>
+<img src="krono-mark.svg" alt="">
+<div><h1>Still working?</h1>
+<p>No mouse or keyboard activity. Timers stop in <b id="t">2:00</b>. Move the mouse to continue.</p></div>
+<script>
+let left = 0, timer;
+const el = document.getElementById('t');
+document.getElementById('x').addEventListener('click', () => window.kronoToast.close());
+const fmt = (s) => Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+const render = () => { el.textContent = fmt(Math.max(0, left)); };
+window.kronoToast.onSeconds((s) => {
+  left = s; render(); clearInterval(timer);
+  timer = setInterval(() => { left = Math.max(0, left - 1); render(); }, 1000);
+});
+</script>
+</body></html>
