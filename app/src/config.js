@@ -5,7 +5,7 @@ export const CONFIG = {
   HEARTBEAT_S: 15,
   PING_FAILS_BEFORE_OFFLINE: 3,
   IDLE_WARNING_S: 180,                       // 3 min: warning
-  IDLE_STOP_S: 120,                          // 2 min: timers stop (at last activity)
+  IDLE_STOP_S: 300,                          // 5 min: timers stop (2 min after the warning; was 120 = before the warning)
   RESUME_WINDOW_MIN: 30,                     // offline Resume auto-start window
   WEBSITE_URL: 'http://localhost/krono/website/public', // Laragon; real domain later
   TOAST_SECONDS: 10,                         // message lifetime (pauses on hover)
