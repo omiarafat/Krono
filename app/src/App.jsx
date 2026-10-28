@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { CONFIG } from './config.js';
 import { AppProvider, useApp, fmt } from './store.jsx';
 import { Auth, Dashboard, Work, Settings, Logo, Modal } from './pages.jsx';
@@ -29,6 +29,16 @@ function Shell() {
     const c = k.onPower((e) => (e === 'suspend' ? A.onSuspend() : A.onResume()));
     return () => { a(); b(); c(); };
   }, [user, busy]);
+
+  // krono://auth?code=... from the website ("Open Krono Desktop"): sign in automatically.
+  const seenCodes = useRef(new Set());
+  useEffect(() => {
+    const k = window.krono; if (!k?.onDeepLink) return;
+    const use = (code) => { if (!code || seenCodes.current.has(code)) return; seenCodes.current.add(code); A.handoffLogin(code); };
+    const off = k.onDeepLink(use);
+    k.takeDeepLink().then(use);
+    return off;
+  }, []);
 
   useEffect(() => { if (run && idle >= CONFIG.IDLE_STOP_S) A.idleStop(nowMs() - idle * 1000); else if (idle < 10) A.idleBack(); }, [idle]);
   const warn = !!run && idle >= CONFIG.IDLE_WARNING_S;
@@ -63,7 +73,7 @@ function Shell() {
           <div className="brand"><Logo /><small>TRACK TIME · MANAGE WORK</small></div>
           <div className="nav-caption">YOUR WORK</div>
           <div className="nav-list">{NAV.map(([id, label, icon]) => (
-            <button key={id} className={`nav-item ${page === id ? 'active' : ''}`} onClick={() => (id === 'site' ? window.open(CONFIG.WEBSITE_URL) : setPage(id))}>
+            <button key={id} className={`nav-item ${page === id ? 'active' : ''}`} onClick={() => (id === 'site' ? A.openWebsite() : setPage(id))}>
               <Ico n={icon} /><span>{label}</span>{id === 'site' && <><span className="spacer" /><Ico n="external" size={13} /></>}</button>))}</div>
           <div className="nav-divider" /><div className="sidebar-spacer" />
           <button className="account-mini" onClick={() => setLoggingOut(true)}><div className="avatar">{initials}</div>
@@ -77,7 +87,7 @@ function Shell() {
         </main>
       </div>
       {!A.noticeSeen && <Modal icon="shield" title="How Krono checks activity" copy="Krono only checks whether the mouse or keyboard was used, so idle timers can pause. It never records what you type or what is on your screen." onClose={() => A.setNoticeSeen(true)}
-        actions={<button className="btn primary" onClick={() => A.setNoticeSeen(true)}>Got it</button>}><div className="notice"><div className="notice-icon"><Ico n="info" /></div><div><h3>Warning after 10 idle minutes</h3><p>If there is still no activity after 12 minutes, running timers pause at your last activity time.</p></div></div></Modal>}
+        actions={<button className="btn primary" onClick={() => A.setNoticeSeen(true)}>Got it</button>}><div className="notice"><div className="notice-icon"><Ico n="info" /></div><div><h3>Warning after {CONFIG.IDLE_WARNING_S / 60} idle minutes</h3><p>If there is still no activity after {CONFIG.IDLE_STOP_S / 60} minutes, running timers pause at your last activity time.</p></div></div></Modal>}
       {loggingOut && <Modal icon="logout" title="Log out of Krono Desktop?" copy="You will return to the app login screen. The Website browser session remains signed in." onClose={() => setLoggingOut(false)}
         actions={<><button className="btn" onClick={() => setLoggingOut(false)}>Cancel</button><button className="btn danger" disabled={busy} onClick={() => { setLoggingOut(false); logout(); }}>Logout</button></>}>
         <div className="notice"><div className="notice-icon"><Ico n="user" /></div><div><h3>{user.email}</h3><p>Before logout, active attendance and unsaved task sessions must be resolved.</p></div></div></Modal>}

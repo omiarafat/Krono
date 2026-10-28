@@ -7,8 +7,13 @@
     <?= e($user['name'] ?? '') ?> · <?= e($user['email'] ?? '') ?>
   </p>
   <p class="mt-3.5 text-[11px] text-muted">The Dashboard page is built in the next stage. This temporary page only confirms that login works.</p>
-  <form method="post" action="<?= url('/logout') ?>" class="mt-4.5"><?= csrf_field() ?>
+  <form method="post" action="<?= url('/open-app') ?>" class="mt-4.5"><?= csrf_field() ?>
     <button class="inline-flex h-10.5 w-full cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-xl border border-brand bg-brand px-4 text-xs font-bold text-on-brand shadow-[0_3px_7px_rgba(4,120,87,.10)] font-[inherit] hover:bg-brand-hover" type="submit">
+      Open Krono Desktop
+    </button>
+  </form>
+  <form method="post" action="<?= url('/logout') ?>" class="mt-3"><?= csrf_field() ?>
+    <button class="inline-flex h-10.5 w-full cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-xl border border-line bg-surface px-4 text-xs font-bold text-ink font-[inherit]" type="submit">
       Log out
     </button>
   </form>

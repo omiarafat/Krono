@@ -1,7 +1,8 @@
 // All tunable rules live here (see ../../FINAL_DECISIONS.md).
 export const CONFIG = {
-  API_MODE: 'mock',                          // 'mock' | 'live'
-  API_BASE: 'http://localhost/krono/website/api', // Laragon; https in production
+  API_MODE: 'mock',                          // tasks / attendance data: 'mock' until those stages are built
+  AUTH_MODE: 'live',                         // 'live' = real account from the website database | 'mock' = fake local login (no server)
+  API_BASE: 'http://localhost/krono/website/public/api', // = WEBSITE_URL + /api  (Laragon; https in production)
   HEARTBEAT_S: 15,
   PING_FAILS_BEFORE_OFFLINE: 3,
   IDLE_WARNING_S: 180,                       // 3 min: warning
