@@ -14,15 +14,23 @@ date_default_timezone_set('UTC'); // storage and logic in UTC; display zone = AP
 ini_set('display_errors', env('APP_ENV') === 'local' ? '1' : '0');
 ini_set('log_errors', '1'); ini_set('error_log', ROOT . '/storage/logs/php-error.log'); error_reporting(E_ALL);
 
+function base_path(): string { return rtrim((string)parse_url((string)env('APP_URL', ''), PHP_URL_PATH), '/'); }
+// API requests (used by the desktop app) use a Bearer token, not cookies: no session, no CSRF.
+function is_api_request(): bool {
+    $p = (string)parse_url((string)($_SERVER['REQUEST_URI'] ?? ''), PHP_URL_PATH);
+    return str_starts_with($p, base_path() . '/api/');
+}
+
 if (PHP_SAPI !== 'cli') {
     header('X-Frame-Options: DENY'); header('X-Content-Type-Options: nosniff'); header('Referrer-Policy: same-origin');
-    session_name('krono_sid');
-    session_set_cookie_params(['httponly' => true, 'samesite' => 'Lax', 'secure' => !empty($_SERVER['HTTPS']), 'path' => '/']);
-    session_start();
+    if (!is_api_request()) {
+        session_name('krono_sid');
+        session_set_cookie_params(['httponly' => true, 'samesite' => 'Lax', 'secure' => !empty($_SERVER['HTTPS']), 'path' => '/']);
+        session_start();
+    }
 }
 
 function e(?string $s): string { return htmlspecialchars((string)$s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); }
-function base_path(): string { return rtrim((string)parse_url((string)env('APP_URL', ''), PHP_URL_PATH), '/'); }
 function url(string $p = '/'): string { return rtrim((string)env('APP_URL', ''), '/') . $p; }
 function asset(string $p): string { return url('/assets/' . $p); }
 function redirect(string $p): never { header('Location: ' . url($p)); exit; }

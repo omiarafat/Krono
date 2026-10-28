@@ -1,5 +1,8 @@
 Options -Indexes
 RewriteEngine On
+# Pass the Authorization header (Bearer token from the desktop app) to PHP.
+RewriteCond %{HTTP:Authorization} ^(.+)$
+RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^ index.php [L]

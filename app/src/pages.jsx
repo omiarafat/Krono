@@ -2,79 +2,171 @@ import { useRef, useState } from 'react';
 import { CONFIG } from './config.js';
 import { useApp, PROJECTS, fmt, fmtHM, fmtDur } from './store.jsx';
 import { Ico } from './icons.jsx';
+import { api, liveAuth } from './api.js';
 import { nowMs } from './clock.js';
 import { tmz as tm, dmz as dy, hourz } from './time.js';
 
 export const Logo = ({ cls }) => { const { dark } = useApp(); return <img className={cls} src={`./brand/Krono_Logo_${dark ? 'Dark' : 'Light'}.svg`} alt="Krono" />; };
 const Notice = ({ icon, title, kind = '', children }) => (
-  <div className={`notice ${kind}`}><div className="notice-icon"><Ico n={icon} /></div><div><h3>{title}</h3><p>{children}</p></div></div>
+  <div className={`notice ${kind}`}>
+    <div className="notice-icon">
+      <Ico n={icon} />
+    </div>
+      <div>
+        <h3>{title}</h3>
+        <p>{children}</p>
+      </div>
+  </div>
 );
 export const Modal = ({ icon, title, copy, wide, onClose, actions, children }) => (
   <div className="modal-overlay" onMouseDown={onClose}>
     <div className={`modal ${wide ? 'wide' : ''}`} role="dialog" aria-label={title} onMouseDown={(e) => e.stopPropagation()}>
-      <div className="modal-head"><div className="modal-symbol"><Ico n={icon} /></div>
-        <div style={{ flex: 1 }}><h2 className="modal-title">{title}</h2><p className="modal-copy">{copy}</p></div>
-        <button className="subtle" style={{ border: 0, background: 'none' }} aria-label="Close" onClick={onClose}><Ico n="x" /></button></div>
-      <div className="modal-body">{children}</div><div className="modal-actions">{actions}</div>
+      <div className="modal-head">
+        <div className="modal-symbol">
+          <Ico n={icon} />
+        </div>
+        <div style={{ flex: 1 }}>
+          <h2 className="modal-title">{title}</h2>
+          <p className="modal-copy">{copy}</p>
+        </div>
+        <button className="subtle" style={{ border: 0, background: 'none' }} aria-label="Close" onClick={onClose}>
+          <Ico n="x" />
+        </button>
+      </div>
+      <div className="modal-body">{children}</div>
+      <div className="modal-actions">{actions}</div>
     </div>
   </div>
 );
 const Heading = ({ eyebrow, title, text, children }) => (
-  <div className="page-heading"><div><div className="eyebrow">{eyebrow}</div><h1>{title}</h1><p>{text}</p></div>{children}</div>
+  <div className="page-heading">
+    <div>
+      <div className="eyebrow">{eyebrow}</div>
+      <h1>{title}</h1>
+      <p>{text}</p>
+    </div>
+    {children}
+  </div>
 );
 
 export function Auth() {
-  const { login, notify, online } = useApp();
+  const { login, signedIn, notify, online } = useApp();
   const [mode, setMode] = useState('login'); const [f, setF] = useState({ name: '', email: '', password: '' });
-  const [code, setCode] = useState(''); const [err, setErr] = useState(''); const ref = useRef(null);
+  const [code, setCode] = useState(''); const [err, setErr] = useState(''); const [busy, setBusy] = useState(false);
+  const [dev, setDev] = useState(false); const ref = useRef(null);
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
   const go = (m) => (e) => { e.preventDefault(); setErr(''); setMode(m); };
-  const submit = (e) => {
+  const email = f.email.trim().toLowerCase();
+
+  // Same account as the website: everything below goes to the website API (one database, one account per email).
+  const signIn = async () => {
+    const r = await api('POST', '/auth/login', { email, password: f.password }, false);
+    if (r.ok && r.user) return signedIn(r.user);
+    if (r.error === 'unverified') { setDev(!!r.devMode); setCode(''); setMode('verify'); setErr(''); return; }
+    setErr(r.message || 'Could not sign in.');
+  };
+  const submit = async (e) => {
     e.preventDefault(); setErr('');
     if (!online) return setErr('You are offline. Connect to the internet to continue.');
-    if (mode === 'verify') { if (code !== '123456') return setErr('That code is not correct.'); return login(f.name || f.email.split('@')[0], f.email); }
-    if (!f.email.includes('@') || f.password.length < 6) return setErr('Enter a valid email and a password with 6 or more characters.');
-    if (mode === 'register') return setMode('verify');
-    login(f.name || f.email.split('@')[0], f.email);
+    if (!liveAuth()) { // local test mode only (AUTH_MODE: 'mock')
+      if (mode === 'verify') return code === '123456' ? login(f.name || f.email.split('@')[0], f.email) : setErr('That code is not correct.');
+      if (!f.email.includes('@') || f.password.length < 6) return setErr('Enter a valid email and a password with 6 or more characters.');
+      return mode === 'register' ? setMode('verify') : login(f.name || f.email.split('@')[0], f.email);
+    }
+    setBusy(true);
+    try {
+      if (mode === 'verify') {
+        const r = await api('POST', '/auth/verify', { email, code }, false);
+        if (!r.ok) return setErr(r.message || 'That code is not correct.');
+        if (f.password) return await signIn(); // verified: sign in right away with the password just typed
+        setMode('login'); return notify('success', 'Email verified', 'You can sign in now.');
+      }
+      if (!email.includes('@') || f.password.length < 8) return setErr('Enter a valid email and a password with 8 or more characters.');
+      if (mode === 'register') {
+        if (f.name.trim().length < 2) return setErr('Enter your full name.');
+        const r = await api('POST', '/auth/register', { name: f.name.trim(), email, password: f.password }, false);
+        if (!r.ok) { if (r.error === 'email_exists') setMode('login'); return setErr(r.message || 'Could not create the account.'); }
+        setDev(!!r.devMode); setCode(''); return setMode('verify');
+      }
+      await signIn();
+    } finally { setBusy(false); }
+  };
+  const resend = async () => {
+    if (!liveAuth()) return notify('info', 'Code sent', 'Dev mode: the code is still 123456.');
+    const r = await api('POST', '/auth/resend', { email }, false);
+    if (r.ok) { setDev(!!r.devMode); notify('info', 'Code sent', 'Check your email for the new code.'); } else notify('error', 'Could not send a new code', r.message);
   };
   const T = { login: ['Welcome back', 'Sign in to continue tracking your work.'], register: ['Create your account', 'Use one Krono account for the website and desktop app.'], verify: ['Verify your email', `Enter the one-time code sent to ${f.email}.`] }[mode];
   return (
-    <div className="auth-stage"><form className="auth-card" onSubmit={submit}>
-      <Logo cls="auth-logo" /><div className="eyebrow">KRONO ACCOUNT</div><h1>{T[0]}</h1><p>{T[1]}</p>
+    <div className="auth-stage">
+      <form className="auth-card" onSubmit={submit}>
+      <Logo cls="auth-logo" />
+      <div className="eyebrow">KRONO ACCOUNT</div>
+      <h1>{T[0]}</h1>
+      <p>{T[1]}</p>
       {mode === 'verify' ? (
         <div className="auth-fields">
-          <div className="verify-code" onClick={() => ref.current.focus()}>{[0, 1, 2, 3, 4, 5].map((i) => <span key={i}>{code[i] || ''}</span>)}</div>
+          <div className="verify-code" onClick={() => ref.current.focus()}>
+            {[0, 1, 2, 3, 4, 5].map((i) => <span key={i}>{code[i] || ''}</span>)}
+          </div>
           <input ref={ref} style={{ position: 'absolute', opacity: 0, pointerEvents: 'none' }} inputMode="numeric" maxLength={6} value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))} autoFocus aria-label="Verification code" />
-          <div className="helper">The verification code expires. Request a new code if needed. Dev mode: the code is 123456.</div>
+          <div className="helper">
+            The verification code expires. Request a new code if needed.{(dev || !liveAuth()) && ' Dev mode: the code is 123456.'} </div>
         </div>
       ) : (
         <div className="auth-fields">
-          {mode === 'register' && <div className="field"><label>Full name</label><input className="input" value={f.name} onChange={set('name')} /></div>}
-          <div className="field"><label>Email address</label><input className="input" type="email" value={f.email} onChange={set('email')} /></div>
-          <div className="field"><label>Password</label><input className="input" type="password" value={f.password} onChange={set('password')} /></div>
-          {mode === 'login' && <div className="between small"><span className="muted">Use your verified Krono account.</span><a className="inline-link" href="#" onClick={(e) => e.preventDefault()}>Forgot password?</a></div>}
+          {mode === 'register' && <div className="field">
+            <label>Full name</label>
+            <input className="input" value={f.name} onChange={set('name')} />
+            </div>
+          }
+          <div className="field">
+            <label>Email address</label>
+            <input className="input" type="email" value={f.email} onChange={set('email')} />
+          </div>
+          <div className="field">
+            <label>Password</label>
+            <input className="input" type="password" value={f.password} onChange={set('password')} />
+          </div>
+          {mode === 'login' && <div className="between small">
+            <span className="muted">Use your verified Krono account.</span>
+            <a className="inline-link" href="#" onClick={(e) => e.preventDefault()}>Forgot password?</a>
+            </div>
+          }
         </div>
       )}
       {err && <div className="helper" style={{ color: 'var(--danger)', marginTop: 12 }} role="alert">{err}</div>}
       <div className="auth-actions">
-        <button className="btn primary" type="submit" disabled={mode === 'verify' && code.length < 6}>{{ login: 'Sign In', register: 'Create Account', verify: 'Verify Email' }[mode]}</button>
-        {mode === 'verify' && <button className="btn" type="button" onClick={() => notify('info', 'Code sent', 'Dev mode: the code is still 123456.')}>Resend code</button>}
+        <button className="btn primary" type="submit" disabled={busy || (mode === 'verify' && code.length < 6)}>
+          {busy ? 'Please wait…' : { login: 'Sign In', register: 'Create Account', verify: 'Verify Email' }[mode]}
+        </button>
+        {mode === 'verify' && <button className="btn" type="button" onClick={resend}>Resend code</button>}
       </div>
       <div className="auth-foot">
         {mode === 'login' && <>New to Krono? <a href="#" onClick={go('register')}>Create an account</a></>}
         {mode === 'register' && <>Already have an account? <a href="#" onClick={go('login')}>Sign in</a></>}
         {mode === 'verify' && <>Wrong email? <a href="#" onClick={go('register')}>Back to registration</a></>}
       </div>
-      <div className="auth-help">Your website and Desktop App use the same verified Krono account. Each client keeps its own login session.</div>
-    </form></div>
+      <div className="auth-help">
+        Your website and Desktop App use the same verified Krono account. Each client keeps its own login session.
+      </div>
+    </form>
+  </div>
   );
 }
 
 export function Dashboard({ go }) {
-  const { user, session, tasks, stats, elapsed } = useApp();
+  const { user, session, tasks, stats, elapsed, openWebsite } = useApp();
   const run = tasks.find((t) => t.status === 'running'); const first = user.name.split(' ')[0];
   const h = hourz(nowMs()); const hi = h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening';
-  const Metric = ({ l, i, v, s }) => <div className="metric"><div className="between"><div className="metric-label">{l}</div><div className="metric-icon"><Ico n={i} /></div></div><div className="metric-value">{v}</div><div className="metric-foot">{s}</div></div>;
+  const Metric = ({ l, i, v, s }) => <div className="metric">
+      <div className="between">
+        <div className="metric-label">{l}</div>
+        <div className="metric-icon"><Ico n={i} /></div>
+      </div>
+      <div className="metric-value">{v}</div>
+      <div className="metric-foot">{s}</div>
+    </div>;
   const status = { out: 'Signed out', working: 'Working', break: 'On break' }[session.status];
   return (<>
     <Heading eyebrow={`TODAY · ${dy(nowMs()).toUpperCase()}`} title={`${hi}, ${first}`} text="Here is your workday at a glance." />
@@ -84,12 +176,34 @@ export function Dashboard({ go }) {
       <Metric l="Break time" i="coffee" v={fmtDur(stats.brk)} s={`${stats.breakCount} breaks today`} />
     </div>
     <div className="grid2" style={{ marginBottom: 16 }}>
-      <section className="panel"><div className="between"><div><div className="panel-title"><Ico n="attendance" /><span>Attendance overview</span></div><p className="panel-subtitle">Today’s attendance session</p></div><span className="badge">● {status}</span></div>
+      <section className="panel">
+        <div className="between">
+          <div>
+            <div className="panel-title">
+              <Ico n="attendance" />
+              <span>Attendance overview</span>
+            </div>
+            <p className="panel-subtitle">Today’s attendance session</p>
+          </div>
+          <span className="badge">● {status}</span>
+        </div>
         <div className="divider" />
-        <div className="stat-line"><span className="muted">Signed in</span><strong>{session.signedInAt && session.status !== 'out' ? tm(session.signedInAt) : 'Not signed in'}</strong></div>
-        <div className="stat-line"><span className="muted">Current status</span><strong>{status}</strong></div>
-        <div className="stat-line"><span className="muted">Breaks completed</span><strong>{session.breaks.length} breaks · {fmtDur(stats.brk)}</strong></div>
-        <div style={{ marginTop: 16 }}><a className="inline-link" href="#" onClick={(e) => { e.preventDefault(); go('work'); }}>View Attendance →</a></div></section>
+        <div className="stat-line">
+          <span className="muted">Signed in</span>
+          <strong>{session.signedInAt && session.status !== 'out' ? tm(session.signedInAt) : 'Not signed in'}</strong>
+        </div>
+        <div className="stat-line">
+          <span className="muted">Current status</span>
+          <strong>{status}</strong>
+        </div>
+        <div className="stat-line">
+          <span className="muted">Breaks completed</span>
+          <strong>{session.breaks.length} breaks · {fmtDur(stats.brk)}</strong>
+        </div>
+        <div style={{ marginTop: 16 }}>
+          <a className="inline-link" href="#" onClick={(e) => { e.preventDefault(); go('work'); }}>View Attendance →</a>
+        </div>
+      </section>
       <section className="panel"><div className="between"><div><div className="panel-title"><Ico n="timer" /><span>Current task</span></div><p className="panel-subtitle">Live timer status</p></div>
         <span className="badge">{run ? <><span className="dot running" /> Running</> : 'No timer'}</span></div>
         <div style={{ marginTop: 20, fontSize: 15, fontWeight: 780 }}>{run ? run.title : 'No task is running'}</div><div className="muted small" style={{ marginTop: 5 }}>{run ? run.project : 'Start a task from Time Tracking.'}</div>
@@ -99,7 +213,7 @@ export function Dashboard({ go }) {
     <div style={{ marginBottom: 16 }}><BreakSummary /></div>
     <section className="panel" style={{ marginBottom: 16 }}>
       <div className="between" style={{ marginBottom: 14 }}><div><div className="panel-title"><Ico n="external" /><span>Manage more on Krono Website</span></div><p className="panel-subtitle">Projects, team and reporting live in your browser.</p></div>
-        <button className="btn primary" onClick={() => window.open(CONFIG.WEBSITE_URL)}><Ico n="external" /> View Website</button></div>
+        <button className="btn primary" onClick={openWebsite}><Ico n="external" /> View Website</button></div>
       <div className="grid4">{[['folder', 'Projects & Tasks', 'Create and manage work'], ['users', 'Team & Workspace', 'Members and roles'], ['file', 'Reports & History', 'Saved logs and PDFs'], ['calendar', 'Calendar & Deadlines', 'Schedule and due dates']].map(([i, t, s]) => (
         <div className="row" key={t}><div className="metric-icon"><Ico n={i} /></div><div><strong style={{ fontSize: 10 }}>{t}</strong><div className="muted tiny" style={{ marginTop: 4 }}>{s}</div></div></div>))}</div>
     </section>
