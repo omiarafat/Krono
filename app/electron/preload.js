@@ -12,4 +12,8 @@ contextBridge.exposeInMainWorld('krono', {
   onIdleTick: (cb) => listen('idle:tick', cb),
   onPower: (cb) => listen('power', cb),
   onCloseRequested: (cb) => listen('close:requested', cb),
+  // Website API (token is kept in the main process) and krono://auth sign-in links
+  api: (o) => ipcRenderer.invoke('api:request', o),
+  takeDeepLink: () => ipcRenderer.invoke('deeplink:take'),
+  onDeepLink: (cb) => listen('deeplink', cb),
 });

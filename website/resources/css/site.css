@@ -6,6 +6,7 @@
 @import "tailwindcss/utilities.css" layer(utilities) source(none);
 @import "./fonts.css" layer(base);
 @import "./components.css" layer(components);
+@import "./app.css" layer(components);
 @source "../../app/Views";
 @source "../../app/bootstrap.php";
 

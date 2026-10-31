@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { CONFIG } from './config.js';
 import { tmz as tm, dayKey } from './time.js';
 import { nowMs } from './clock.js';
+import { api, liveAuth } from './api.js';
 
 const Ctx = createContext(null);
 export const useApp = () => useContext(Ctx);
@@ -28,6 +29,7 @@ export function AppProvider({ children }) {
   const closedAt = init.tasks?.some((t) => t.since) && t0() - beat > 30000 ? beat : null; // app was closed while a timer ran
   const startNote = useRef(closedAt);
   const [user, setUser] = useState(init.user || null);
+  const [owner, setOwner] = useState(init.owner || init.user?.email || null); // whose local data (tasks, logs) this device holds
   const [session, setSession] = useState(init.session || { status: 'out', signedInAt: null, breaks: [] });
   const [tasks, setTasks] = useState(closedAt ? pauseAt(init.tasks, closedAt) : init.tasks || []);
   const [logs, setLogs] = useState(init.logs || []);
@@ -45,12 +47,17 @@ export function AppProvider({ children }) {
   const [resumeReq, setResumeReq] = useState(null); // { id, at } remembered while offline
   const [idleNote, setIdleNote] = useState(null);
   const offlineSince = useRef(null); const slept = useRef(false); const R = useRef({});
-  R.current = { tasks, session, resumeReq };
+  R.current = { tasks, session, resumeReq, user, owner };
 
   const notify = (kind, title, small) => setToasts((l) => [...l.slice(-3), { id: crypto.randomUUID(), kind, title, small }]);
   const guard = (what) => (online ? true : (notify('error', 'You are offline', `Connect to the internet to ${what}.`), false));
   const startRaw = (id, ts = t0()) => setTasks((p) => pauseAt(p, ts).map((t) => (t.id === id ? { ...t, since: ts, status: 'running' } : t)));
 
+  // Live accounts: check the saved login with the website (a revoked or expired login signs the app out).
+  useEffect(() => {
+    if (!liveAuth() || !R.current.user) return;
+    api('GET', '/me').then((r) => { if (r.status === 401) setUser(null); else if (r.ok && r.user) setUser((u) => (u && u.email === r.user.email && u.name === r.user.name ? u : r.user)); });
+  }, []);
   useEffect(() => {
     if (startNote.current) { notify('info', 'Krono was closed', `Krono was closed from ${tm(startNote.current)}. Your timer was paused at that time.`); startNote.current = null; }
   }, []);
@@ -85,7 +92,7 @@ export function AppProvider({ children }) {
     mq.addEventListener('change', f); addEventListener('online', on); addEventListener('offline', off);
     return () => { mq.removeEventListener('change', f); removeEventListener('online', on); removeEventListener('offline', off); };
   }, []);
-  useEffect(() => { localStorage.setItem(KEY, JSON.stringify({ user, session, tasks, logs, theme, offlineLog, lastActive, noticeSeen })); }, [user, session, tasks, logs, theme, offlineLog, lastActive, noticeSeen]);
+  useEffect(() => { localStorage.setItem(KEY, JSON.stringify({ user, owner, session, tasks, logs, theme, offlineLog, lastActive, noticeSeen })); }, [user, owner, session, tasks, logs, theme, offlineLog, lastActive, noticeSeen]);
   const dark = theme === 'dark' || (theme === 'system' && sysDark);
   useEffect(() => { document.body.dataset.theme = dark ? 'dark' : 'light'; window.krono?.setTheme(theme); }, [dark, theme]);
 
@@ -110,10 +117,38 @@ export function AppProvider({ children }) {
     notify('info', 'Yesterday’s session was closed automatically', `Sign-out time was set to ${tm(e)}, your last activity.`);
   });
 
+  // A different account on this device never sees the previous account's local tasks and logs.
+  const adopt = (u) => {
+    if (R.current.owner && R.current.owner !== u.email) { setTasks([]); setLogs([]); setOfflineLog([]); setSession({ status: 'out', signedInAt: null, breaks: [] }); }
+    setOwner(u.email); setUser(u);
+  };
   const signOut = () => { if (!guard('sign out')) return; setTasks((p) => pauseAt(p, t0())); setSession((s) => ({ ...s, status: 'out', signedOutAt: t0() })); };
   const A = {
-    login: (name, email) => setUser({ name, email }),
-    logout: () => { if (guard('log out')) setUser(null); },
+    login: (name, email) => adopt({ name, email }), // mock mode only
+    signedIn: (u) => adopt(u),                       // real account returned by the website API
+    logout: () => {
+      if (!guard('log out')) return;
+      if (liveAuth()) api('POST', '/auth/logout').catch(() => {}); // the app always signs out, even if the server cannot be reached
+      setUser(null);
+    },
+    // Website -> app: krono://auth?code=... carries a one-time code. Exchange it for this app's own login.
+    handoffLogin: async (code) => {
+      const cur = R.current;
+      const busy = cur.user && (cur.session.status !== 'out' || cur.tasks.some((t) => t.acc > 0 || t.since));
+      if (busy) return notify('error', 'Could not switch account', 'Finish Sign Out and save your tracked time first, then press Open Krono Desktop again.');
+      const r = await api('POST', '/auth/handoff', { code }, false);
+      if (!r.ok || !r.user) return notify('error', 'Could not sign in from the website', r.message || 'Press Open Krono Desktop on the website again.');
+      adopt(r.user);
+      notify('success', 'Signed in from the website', r.user.email);
+    },
+    // App -> website: open the website already signed in as the same account.
+    openWebsite: async () => {
+      if (liveAuth() && R.current.user) {
+        const r = await api('POST', '/auth/web-link');
+        if (r.ok && r.url) return window.open(r.url);
+      }
+      window.open(CONFIG.WEBSITE_URL);
+    },
     signIn: () => { if (guard('sign in')) setSession({ status: 'working', signedInAt: t0(), breaks: [] }); },
     signOut,
     start: (id) => { if (guard('start a task')) startRaw(id); },

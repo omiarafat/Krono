@@ -14,19 +14,31 @@ date_default_timezone_set('UTC'); // storage and logic in UTC; display zone = AP
 ini_set('display_errors', env('APP_ENV') === 'local' ? '1' : '0');
 ini_set('log_errors', '1'); ini_set('error_log', ROOT . '/storage/logs/php-error.log'); error_reporting(E_ALL);
 
+function base_path(): string { return rtrim((string)parse_url((string)env('APP_URL', ''), PHP_URL_PATH), '/'); }
+// API requests (used by the desktop app) use a Bearer token, not cookies: no session, no CSRF.
+function is_api_request(): bool {
+    $p = (string)parse_url((string)($_SERVER['REQUEST_URI'] ?? ''), PHP_URL_PATH);
+    return str_starts_with($p, base_path() . '/api/');
+}
+
 if (PHP_SAPI !== 'cli') {
     header('X-Frame-Options: DENY'); header('X-Content-Type-Options: nosniff'); header('Referrer-Policy: same-origin');
-    session_name('krono_sid');
-    session_set_cookie_params(['httponly' => true, 'samesite' => 'Lax', 'secure' => !empty($_SERVER['HTTPS']), 'path' => '/']);
-    session_start();
+    if (!is_api_request()) {
+        session_name('krono_sid');
+        session_set_cookie_params(['httponly' => true, 'samesite' => 'Lax', 'secure' => !empty($_SERVER['HTTPS']), 'path' => '/']);
+        session_start();
+    }
 }
 
 function e(?string $s): string { return htmlspecialchars((string)$s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); }
-function base_path(): string { return rtrim((string)parse_url((string)env('APP_URL', ''), PHP_URL_PATH), '/'); }
 function url(string $p = '/'): string { return rtrim((string)env('APP_URL', ''), '/') . $p; }
 function asset(string $p): string { return url('/assets/' . $p); }
 function redirect(string $p): never { header('Location: ' . url($p)); exit; }
-function icon(string $n): string { static $i = null; $i ??= require ROOT . '/app/icons.php'; return '<svg class="ico" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' . ($i[$n] ?? '') . '</svg>'; }
+function icon(string $n, int $size = 22): string { static $i = null; $i ??= require ROOT . '/app/icons.php'; return '<svg class="ico" width="' . $size . '" height="' . $size . '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' . ($i[$n] ?? '') . '</svg>'; }
+// Workspace timezone: decides what "today", "this week" and "this month" mean. Stored times stay UTC.
+function app_tz(): DateTimeZone { try { return new DateTimeZone((string)env('APP_TIMEZONE', 'Asia/Dhaka')); } catch (Exception $e) { return new DateTimeZone('Asia/Dhaka'); } }
+function fmt_hm(int $s): string { $s = max(0, $s); $h = intdiv($s, 3600); $m = intdiv($s % 3600, 60); return $h > 0 ? sprintf('%dh %02dm', $h, $m) : $m . 'm'; }   // 36h 24m, 45m
+function fmt_hms(int $s): string { $s = max(0, $s); return sprintf('%02d:%02d:%02d', intdiv($s, 3600), intdiv($s % 3600, 60), $s % 60); }               // 01:25:00
 function csrf_token(): string { return $_SESSION['csrf'] ??= bin2hex(random_bytes(32)); }
 function csrf_field(): string { return '<input type="hidden" name="_csrf" value="' . e(csrf_token()) . '">'; }
 function csrf_check(): bool { return isset($_POST['_csrf'], $_SESSION['csrf']) && hash_equals($_SESSION['csrf'], (string)$_POST['_csrf']); }

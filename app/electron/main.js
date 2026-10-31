@@ -1,11 +1,71 @@
-const { app, BrowserWindow, ipcMain, nativeTheme, powerMonitor, screen, shell } = require('electron');
+const { app, BrowserWindow, ipcMain, nativeTheme, net, powerMonitor, safeStorage, screen, shell } = require('electron');
+const fs = require('fs');
 const path = require('path');
 
 // One app instance only (one timer per user).
-if (!app.requestSingleInstanceLock()) app.quit();
+const gotLock = app.requestSingleInstanceLock();
+if (!gotLock) app.quit();
 
-// krono:// links from the website ("Open App").
-app.setAsDefaultProtocolClient('krono');
+// krono:// links from the website ("Open Krono Desktop" -> automatic sign-in).
+// In development (electron .) Windows needs the script path as well.
+if (process.defaultApp && process.argv[1]) app.setAsDefaultProtocolClient('krono', process.execPath, [path.resolve(process.argv[1])]);
+else app.setAsDefaultProtocolClient('krono');
+
+// ---- krono://auth?code=<64 hex>: one-time sign-in code from the website ----
+let pendingLink = null; // kept until the app window asks for it (app was closed / still loading)
+function handleLink(u) {
+  const m = /^krono:\/\/auth\/?\?code=([a-f0-9]{64})$/i.exec(String(u || '').trim());
+  if (!m) return;
+  pendingLink = m[1].toLowerCase();
+  if (!win || win.isDestroyed()) return; // app starting: the window will ask for pendingLink
+  if (win.isMinimized()) win.restore();
+  win.show(); win.focus();
+  if (!win.webContents.isLoading()) { win.webContents.send('deeplink', pendingLink); pendingLink = null; }
+}
+ipcMain.handle('deeplink:take', () => { const c = pendingLink; pendingLink = null; return c; });
+app.on('open-url', (e, u) => { e.preventDefault(); handleLink(u); }); // macOS
+const firstLink = process.argv.find((a) => String(a).startsWith('krono://'));
+
+// ---- Login token: stays in this (main) process, encrypted with the OS (Windows DPAPI). The window never sees it. ----
+const tokenPath = (ext) => path.join(app.getPath('userData'), `session.${ext}`);
+function saveToken(t) {
+  try {
+    clearToken();
+    if (safeStorage.isEncryptionAvailable()) fs.writeFileSync(tokenPath('enc'), safeStorage.encryptString(t));
+    else fs.writeFileSync(tokenPath('txt'), t, { mode: 0o600 });
+  } catch (_) { /* token just stays in memory for this run */ }
+  memToken = t;
+}
+function loadToken() {
+  if (memToken) return memToken;
+  try {
+    if (fs.existsSync(tokenPath('enc'))) return (memToken = safeStorage.decryptString(fs.readFileSync(tokenPath('enc'))));
+    if (fs.existsSync(tokenPath('txt'))) return (memToken = fs.readFileSync(tokenPath('txt'), 'utf8').trim());
+  } catch (_) { /* unreadable: treat as signed out */ }
+  return '';
+}
+function clearToken() { memToken = ''; for (const e of ['enc', 'txt']) { try { fs.unlinkSync(tokenPath(e)); } catch (_) {} } }
+let memToken = '';
+
+// API calls go through here, so the website needs no CORS rules and the token never reaches the page.
+ipcMain.handle('api:request', async (_e, { base, method = 'GET', path: p, body, auth = true } = {}) => {
+  if (!/^https?:\/\//.test(String(base)) || !String(p).startsWith('/')) return { ok: false, error: 'bad_request', message: 'Bad request.' };
+  const headers = { Accept: 'application/json', 'Content-Type': 'application/json' };
+  if (auth) { const t = loadToken(); if (t) headers.Authorization = `Bearer ${t}`; }
+  const ac = new AbortController(); const timer = setTimeout(() => ac.abort(), 15000);
+  try {
+    const r = await net.fetch(base + p, { method, headers, body: body ? JSON.stringify(body) : undefined, signal: ac.signal });
+    let j = {}; try { j = await r.json(); } catch (_) { /* not JSON */ }
+    if (typeof j.token === 'string') { saveToken(j.token); delete j.token; }
+    if (auth && r.status === 401) clearToken();
+    return { status: r.status, ...j };
+  } catch (_) {
+    return { ok: false, error: 'network', message: 'Cannot reach the Krono server. Check your internet connection.' };
+  } finally {
+    clearTimeout(timer);
+    if (p === '/auth/logout') clearToken();
+  }
+});
 
 // TODO: replace with exact values from tailwind-v4-theme.css tokens.
 const BAR = {
@@ -35,6 +95,7 @@ function createWindow() {
     },
   });
   win.setMenuBarVisibility(false);
+  win.webContents.on('did-finish-load', () => { if (pendingLink) { win.webContents.send('deeplink', pendingLink); pendingLink = null; } });
   win.webContents.setWindowOpenHandler(({ url }) => { if (/^https?:/.test(url)) shell.openExternal(url); return { action: 'deny' }; });
 
   if (app.isPackaged) {
@@ -107,12 +168,16 @@ setInterval(() => {
 }, 5000);
 
 app.whenReady().then(() => {
+  if (!gotLock) return;
   createWindow();
+  if (firstLink) handleLink(firstLink);
   powerMonitor.on('suspend', () => win && win.webContents.send('power', 'suspend'));
   powerMonitor.on('resume', () => win && win.webContents.send('power', 'resume'));
 });
 
-app.on('second-instance', () => {
+app.on('second-instance', (_e, argv) => {
+  const link = (argv || []).find((a) => String(a).startsWith('krono://'));
+  if (link) return handleLink(link);
   if (!win) return;
   if (win.isMinimized()) win.restore();
   win.focus();
