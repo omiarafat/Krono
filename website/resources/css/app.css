@@ -1,0 +1,18 @@
+/* Reusable pieces of the signed-in shell, written with Tailwind classes (@apply).
+   Rule: use Tailwind classes in the HTML first. Only a pattern that repeats gets a name here. */
+.panel-card { @apply rounded-[17px] border border-line bg-surface shadow-card; }
+
+.icon-button { @apply inline-flex h-8.5 w-8.5 shrink-0 cursor-pointer items-center justify-center rounded-[10px] border border-line bg-surface p-0 text-muted hover:text-brand focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand; }
+
+.user-dot { @apply flex h-8.5 w-8.5 shrink-0 items-center justify-center rounded-full bg-soft text-xs font-extrabold text-brand; }
+
+.menu-item { @apply block w-full cursor-pointer rounded-lg border-0 bg-transparent px-3 py-2.5 text-left font-[inherit] text-xs font-semibold text-ink hover:bg-raised; }
+
+/* Sidebar link. Wears a "group/nav" class in the HTML so its tooltip can react to hover. */
+.nav-link {
+  @apply relative my-0.75 flex h-10.5 items-center gap-3 rounded-xl px-3 text-[13px] font-medium text-side-text no-underline hover:bg-raised;
+  @apply in-data-[sidebar=collapsed]:justify-center in-data-[sidebar=collapsed]:px-0;
+  & .ico { @apply text-side-muted; }
+  &[aria-current="page"] { @apply bg-active font-bold text-active-text shadow-[inset_3px_0_0_var(--brand)]; }
+  &[aria-current="page"] .ico { @apply text-brand; }
+}

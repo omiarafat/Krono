@@ -11,9 +11,10 @@ $routes = [
     'GET /login' => [$A, 'showLogin'], 'POST /login' => [$A, 'login'],
     'GET /register' => [$A, 'showRegister'], 'POST /register' => [$A, 'register'],
     'GET /verify' => [$A, 'showVerify'], 'POST /verify' => [$A, 'verify'], 'POST /verify/resend' => [$A, 'resend'],
-    'POST /logout' => [$A, 'logout'], 'GET /dashboard' => [$A, 'dashboard'],
+    'POST /logout' => [$A, 'logout'], 'GET /dashboard' => [DashboardController::class, 'index'],
     'POST /open-app' => [$A, 'openApp'], 'GET /auth/handoff' => [$A, 'webHandoff'],
 ];
+foreach (array_keys(PageController::SOON) as $soonPath) $routes["GET $soonPath"] = fn() => PageController::soon($soonPath);
 // Desktop app API (JSON, Bearer token). Same account database as the website.
 $P = ApiController::class;
 $api = [
