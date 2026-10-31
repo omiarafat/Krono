@@ -46,5 +46,4 @@ final class AuthController {
         Auth::startSession($uid); redirect('/dashboard');
     }
     static function logout(): void { $_SESSION = []; session_destroy(); redirect('/login'); }
-    static function dashboard(): void { $u = Auth::user(); if (!$u) redirect('/login'); render('dashboard-placeholder', ['title' => 'Dashboard', 'user' => $u]); }
 }

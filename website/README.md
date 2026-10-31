@@ -8,4 +8,4 @@
 
 ## Rules
 - Never commit `.env`. `MAIL_MODE=fixed` works only when `APP_ENV=local`.
-- Add new database changes as new files in `database/migrations/` (never edit applied ones).
+- Database = ONE file: `database/schema.sql`. New table later = add `CREATE TABLE IF NOT EXISTS` at the end, then run `php database/migrate.php`. Existing tables and data are never changed or deleted.
