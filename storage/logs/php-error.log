@@ -1,0 +1,65 @@
+[27-Oct-2026 09:11:39 UTC] PHP Fatal error:  A void method must not return a value in E:\Makehub\Krono\website\app\AuthController.php on line 21
+[27-Oct-2026 09:16:27 UTC] PDOException: SQLSTATE[42S02]: Base table or view not found: 1146 Table 'krono.login_attempts' doesn't exist in E:\Makehub\Krono\website\app\Db.php:13
+Stack trace:
+#0 E:\Makehub\Krono\website\app\Db.php(13): PDO->prepare('SELECT COUNT(*)...')
+#1 E:\Makehub\Krono\website\app\Auth.php(21): Db::q('SELECT COUNT(*)...', Array)
+#2 E:\Makehub\Krono\website\app\AuthController.php(6): Auth::attempt('arafatislamno1@...', '123456')
+#3 E:\Makehub\Krono\website\public\index.php(18): AuthController::login()
+#4 {main}
+[27-Oct-2026 09:19:33 UTC] PDOException: SQLSTATE[42S02]: Base table or view not found: 1146 Table 'krono.login_attempts' doesn't exist in E:\Makehub\Krono\website\app\Db.php:13
+Stack trace:
+#0 E:\Makehub\Krono\website\app\Db.php(13): PDO->prepare('SELECT COUNT(*)...')
+#1 E:\Makehub\Krono\website\app\Auth.php(21): Db::q('SELECT COUNT(*)...', Array)
+#2 E:\Makehub\Krono\website\app\AuthController.php(6): Auth::attempt('arafatislamno1@...', '12345678')
+#3 E:\Makehub\Krono\website\public\index.php(18): AuthController::login()
+#4 {main}
+[27-Oct-2026 16:58:46 UTC] PDOException: SQLSTATE[42S02]: Base table or view not found: 1146 Table 'krono.login_attempts' doesn't exist in E:\Makehub\Krono\website\app\Db.php:13
+Stack trace:
+#0 E:\Makehub\Krono\website\app\Db.php(13): PDO->prepare('SELECT COUNT(*)...')
+#1 E:\Makehub\Krono\website\app\Auth.php(21): Db::q('SELECT COUNT(*)...', Array)
+#2 E:\Makehub\Krono\website\app\AuthController.php(6): Auth::attempt('arafatislamno1@...', '12345678')
+#3 E:\Makehub\Krono\website\public\index.php(18): AuthController::login()
+#4 {main}
+[27-Oct-2026 17:30:12 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[HY000] [2002] No connection could be made because the target machine actively refused it in E:\Makehub\Krono\website\app\Db.php:7
+Stack trace:
+#0 E:\Makehub\Krono\website\app\Db.php(7): PDO->__construct('mysql:host=127....', 'root', Object(SensitiveParameterValue), Array)
+#1 E:\Makehub\Krono\website\database\migrate.php(7): Db::pdo(true)
+#2 {main}
+  thrown in E:\Makehub\Krono\website\app\Db.php on line 7
+[28-Oct-2026 18:46:26 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S01]: Base table or view already exists: 1050 Table 'users' already exists in E:\Makehub\Krono\website\database\migrate.php:15
+Stack trace:
+#0 E:\Makehub\Krono\website\database\migrate.php(15): PDO->exec('-- Stage 1: acc...')
+#1 {main}
+  thrown in E:\Makehub\Krono\website\database\migrate.php on line 15
+[28-Oct-2026 18:49:30 UTC] PDOException: SQLSTATE[42S02]: Base table or view not found: 1146 Table 'krono.api_tokens' doesn't exist in E:\Makehub\Krono\website\app\Db.php:13
+Stack trace:
+#0 E:\Makehub\Krono\website\app\Db.php(13): PDO->prepare('INSERT INTO api...')
+#1 E:\Makehub\Krono\website\app\Auth.php(93): Db::q('INSERT INTO api...', Array)
+#2 E:\Makehub\Krono\website\app\ApiController.php(60): Auth::issueToken(2, 'Krono Desktop')
+#3 E:\Makehub\Krono\website\public\index.php(24): ApiController::login()
+#4 E:\Makehub\Krono\website\app\ApiController.php(24): {closure:E:\Makehub\Krono\website\public\index.php:24}()
+#5 E:\Makehub\Krono\website\public\index.php(24): ApiController::run(Object(Closure))
+#6 {main}
+[28-Oct-2026 18:50:33 UTC] PDOException: SQLSTATE[42S02]: Base table or view not found: 1146 Table 'krono.api_tokens' doesn't exist in E:\Makehub\Krono\website\app\Db.php:13
+Stack trace:
+#0 E:\Makehub\Krono\website\app\Db.php(13): PDO->prepare('INSERT INTO api...')
+#1 E:\Makehub\Krono\website\app\Auth.php(93): Db::q('INSERT INTO api...', Array)
+#2 E:\Makehub\Krono\website\app\ApiController.php(60): Auth::issueToken(1, 'Krono Desktop')
+#3 E:\Makehub\Krono\website\public\index.php(24): ApiController::login()
+#4 E:\Makehub\Krono\website\app\ApiController.php(24): {closure:E:\Makehub\Krono\website\public\index.php:24}()
+#5 E:\Makehub\Krono\website\public\index.php(24): ApiController::run(Object(Closure))
+#6 {main}
+[28-Oct-2026 18:51:58 UTC] PDOException: SQLSTATE[42S02]: Base table or view not found: 1146 Table 'krono.api_tokens' doesn't exist in E:\Makehub\Krono\website\app\Db.php:13
+Stack trace:
+#0 E:\Makehub\Krono\website\app\Db.php(13): PDO->prepare('INSERT INTO api...')
+#1 E:\Makehub\Krono\website\app\Auth.php(93): Db::q('INSERT INTO api...', Array)
+#2 E:\Makehub\Krono\website\app\ApiController.php(60): Auth::issueToken(1, 'Krono Desktop')
+#3 E:\Makehub\Krono\website\public\index.php(24): ApiController::login()
+#4 E:\Makehub\Krono\website\app\ApiController.php(24): {closure:E:\Makehub\Krono\website\public\index.php:24}()
+#5 E:\Makehub\Krono\website\public\index.php(24): ApiController::run(Object(Closure))
+#6 {main}
+[30-Oct-2026 15:55:34 UTC] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S01]: Base table or view already exists: 1050 Table 'users' already exists in E:\Makehub\Krono\website\database\migrate.php:15
+Stack trace:
+#0 E:\Makehub\Krono\website\database\migrate.php(15): PDO->exec('-- Stage 1: acc...')
+#1 {main}
+  thrown in E:\Makehub\Krono\website\database\migrate.php on line 15
