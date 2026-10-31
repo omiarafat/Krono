@@ -50,7 +50,7 @@ $tip = 'pointer-events-none absolute left-full top-1/2 z-50 ml-3 hidden -transla
 
   <main class="min-w-0 flex-1">
     <header class="sticky top-0 z-30 border-b border-line bg-page/90 px-8 backdrop-blur max-sm:px-4">
-      <div class="mx-auto flex h-18.5 max-w-310 items-center justify-between gap-3">
+      <div class="mx-auto flex h-18.5 items-center justify-between gap-3">
         <div class="flex min-w-0 items-center gap-3.5">
           <button type="button" data-sidebar-toggle class="icon-button" aria-label="Toggle sidebar"><?= icon('menu', 16) ?></button>
           <div class="truncate text-xs text-muted">Workspace <span class="mx-2 text-side-muted">›</span> <strong class="font-bold text-ink"><?= e($crumb) ?></strong></div>
@@ -72,7 +72,7 @@ $tip = 'pointer-events-none absolute left-full top-1/2 z-50 ml-3 hidden -transla
         </div>
       </div>
     </header>
-    <div class="mx-auto max-w-310 px-8 max-sm:px-4">
+    <div class="mx-auto px-8 max-sm:px-4">
       <?= $content ?? '' ?>
       <footer class="border-t border-line py-4.5 text-[10px] text-muted">Krono <span class="mx-1.25">·</span> Track time. Manage work.</footer>
     </div>
