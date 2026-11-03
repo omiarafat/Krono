@@ -70,6 +70,33 @@ CREATE TABLE IF NOT EXISTS login_handoffs (
   CONSTRAINT fk_handoff_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- ===== 004_workspaces_roles =====
+-- A workspace = one company/team. Every project belongs to a workspace; every member has ONE role in it.
+-- Roles: owner > admin > manager > member > viewer. manager_id = the member's direct manager (used for "self + direct reports" scope).
+CREATE TABLE IF NOT EXISTS workspaces (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(120) NOT NULL,
+  timezone VARCHAR(64) NOT NULL DEFAULT 'Asia/Dhaka',
+  created_by BIGINT UNSIGNED NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  CONSTRAINT fk_ws_creator FOREIGN KEY (created_by) REFERENCES users(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS workspace_members (
+  workspace_id BIGINT UNSIGNED NOT NULL,
+  user_id BIGINT UNSIGNED NOT NULL,
+  role ENUM('owner','admin','manager','member','viewer') NOT NULL DEFAULT 'member',
+  manager_id BIGINT UNSIGNED NULL,
+  status ENUM('active','deactivated') NOT NULL DEFAULT 'active',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (workspace_id, user_id),
+  KEY idx_wm_user (user_id, status),
+  CONSTRAINT fk_wm_ws FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE,
+  CONSTRAINT fk_wm_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  CONSTRAINT fk_wm_manager FOREIGN KEY (manager_id) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- ===== 003_core_work_data =====
 -- Stage 2 (Dashboard): the work data the dashboard reads. Additive only; nothing existing is touched.
 -- All timestamps are UTC (DATETIME). "Day / week / month" are computed from the workspace timezone in PHP.
@@ -77,6 +104,7 @@ CREATE TABLE IF NOT EXISTS login_handoffs (
 
 CREATE TABLE IF NOT EXISTS projects (
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  workspace_id BIGINT UNSIGNED NULL,
   name VARCHAR(150) NOT NULL,
   description TEXT NULL,
   status ENUM('upcoming','planning','in_progress','on_hold','completed') NOT NULL DEFAULT 'planning',
@@ -88,8 +116,10 @@ CREATE TABLE IF NOT EXISTS projects (
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   archived_at DATETIME NULL,
+  KEY idx_projects_ws (workspace_id),
   KEY idx_projects_creator (created_by),
   KEY idx_projects_status (status, archived_at),
+  CONSTRAINT fk_projects_ws FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE,
   CONSTRAINT fk_projects_creator FOREIGN KEY (created_by) REFERENCES users(id),
   CONSTRAINT fk_projects_leader FOREIGN KEY (leader_id) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

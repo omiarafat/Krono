@@ -60,6 +60,7 @@ final class Auth {
     static function register(string $name, string $email, string $pass): bool {
         try {
             Db::q('INSERT INTO users (name, email, password_hash) VALUES (?, ?, ?)', [$name, $email, password_hash($pass, PASSWORD_DEFAULT)]);
+            try { Workspace::ensureFor((int)Db::pdo()->lastInsertId()); } catch (Throwable $e) { error_log((string)$e); } // also created lazily on first sign-in if this fails
             return true;
         } catch (PDOException $e) { if ($e->getCode() === '23000') return false; throw $e; }
     }
