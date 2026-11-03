@@ -15,4 +15,14 @@ foreach (array_filter(array_map('trim', explode(';', $sql))) as $stmt) {
     $pdo->exec($stmt);
     echo str_pad($m[1], 28), $had ? "exists (kept, data untouched)\n" : "created\n";
 }
+// Upgrades for tables that already exist (CREATE TABLE IF NOT EXISTS cannot add columns). Each step runs only when needed; no data is removed.
+$has = fn(string $t, string $c) => (int)Db::q('SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = ? AND column_name = ?', [$t, $c])->fetchColumn() > 0;
+if (!$has('projects', 'workspace_id')) {
+    $pdo->exec('ALTER TABLE projects ADD COLUMN workspace_id BIGINT UNSIGNED NULL AFTER id, ADD KEY idx_projects_ws (workspace_id), ADD CONSTRAINT fk_projects_ws FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE');
+    echo str_pad('projects.workspace_id', 28), "added\n";
+}
+// Every account gets a personal workspace (owner). Existing projects join the workspace of the user who created them.
+foreach (Db::q('SELECT id FROM users')->fetchAll(PDO::FETCH_COLUMN) as $uid) Workspace::ensureFor((int)$uid);
+$n = Db::q('UPDATE projects p SET p.workspace_id = (SELECT m.workspace_id FROM workspace_members m WHERE m.user_id = p.created_by ORDER BY m.created_at LIMIT 1) WHERE p.workspace_id IS NULL')->rowCount();
+if ($n) echo "projects linked to a workspace: $n\n";
 echo "Done.\n";

@@ -16,14 +16,14 @@ Db::q("DELETE FROM projects WHERE created_by = ? AND description LIKE '[demo]%'"
 Db::q("DELETE FROM attendance_sessions WHERE user_id = ? AND source = 'demo'", [$uid]);      // breaks cascade
 if (in_array('--clear', $argv, true)) exit("Demo data removed.\n");
 
-$utc = new DateTimeZone('UTC'); $now = new DateTimeImmutable('now', $utc); $f = 'Y-m-d H:i:s';
-$today = $now->setTimezone(app_tz())->setTime(0, 0);
-$mk = function (string $name, string $status, int $monthsAgoDays) use ($uid, $now, $f): int {
-    Db::q('INSERT INTO projects (name, description, status, created_by, created_at) VALUES (?,?,?,?,?)', [$name, '[demo] sample project', $status, $uid, $now->modify("-$monthsAgoDays days")->format($f)]);
+$ws = Workspace::ensureFor($uid); $utc = new DateTimeZone('UTC'); $now = new DateTimeImmutable('now', $utc); $f = 'Y-m-d H:i:s';
+$today = $now->setTimezone(Workspace::tz($ws))->setTime(0, 0);
+$mk = function (string $name, string $status, int $monthsAgoDays) use ($uid, $now, $f, $ws): int {
+    Db::q('INSERT INTO projects (workspace_id, name, description, status, created_by, created_at) VALUES (?,?,?,?,?,?)', [(int)$ws['id'], $name, '[demo] sample project', $status, $uid, $now->modify("-$monthsAgoDays days")->format($f)]);
     return (int)Db::pdo()->lastInsertId();
 };
 $task = function (int $pid, string $title, string $status, ?string $due) use ($uid, $f, $now): int {
-    Db::q('INSERT INTO tasks (project_id, title, status, due_date, created_by, completed_at) VALUES (?,?,?,?,?,?)', [$pid, $title, $status, $due, $uid, $status === 'completed' ? $now->format($f) : null]);
+    Db::q('INSERT INTO tasks (project_id, title, status, assignee_id, due_date, created_by, completed_at) VALUES (?,?,?,?,?,?,?)', [$pid, $title, $status, $uid, $due, $uid, $status === 'completed' ? $now->format($f) : null]);
     return (int)Db::pdo()->lastInsertId();
 };
 $wk = $today->modify('monday this week');
@@ -39,7 +39,7 @@ $names = array_keys($t); $descs = ['Reviewed spacing and refined responsive card
 foreach (range(0, 13) as $back) {
     $day = $today->modify("-$back days"); if ((int)$day->format('N') === 7 && $back > 0) continue; // quiet Sundays
     foreach (range(0, $back % 2) as $n) {
-        $start = $day->setTime(10 + 3 * $n, 0); if ($start > $now) $start = $now->modify('-2 hours')->setTimezone(app_tz());
+        $start = $day->setTime(10 + 3 * $n, 0); if ($start > $now) $start = $now->modify('-2 hours')->setTimezone(Workspace::tz($ws));
         $dur = (45 + (($back * 37 + $n * 53) % 100)) * 60;
         [$tid, $pid] = $t[$names[($back + $n * 3) % 9]];
         Db::q('INSERT INTO task_time_logs (user_id, project_id, task_id, started_at, ended_at, duration_seconds, work_description) VALUES (?,?,?,?,?,?,?)',
@@ -51,4 +51,5 @@ $in = max($today->setTimezone($utc), $now->modify('-5 hours')); $out = $now->mod
 Db::q("INSERT INTO attendance_sessions (user_id, sign_in_at, sign_out_at, source) VALUES (?,?,?, 'demo')", [$uid, $in->format($f), $out->format($f)]);
 $sid = (int)Db::pdo()->lastInsertId(); $bs = $in->modify('+1 hour');
 if ($bs->modify('+30 minutes') < $out) Db::q('INSERT INTO attendance_breaks (session_id, start_at, end_at) VALUES (?,?,?)', [$sid, $bs->format($f), $bs->modify('+30 minutes')->format($f)]);
+if ($bs->modify('+2 hours') < $out) Db::q('INSERT INTO attendance_breaks (session_id, start_at, end_at) VALUES (?,?,?)', [$sid, $bs->modify('+2 hours')->format($f), $bs->modify('+2 hours 160 seconds')->format($f)]); // a 2m 40s break
 echo "Demo data added for $email. Open /dashboard. Remove later with: php database/seed_demo.php $email --clear\n";

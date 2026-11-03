@@ -39,6 +39,9 @@ function icon(string $n, int $size = 22): string { static $i = null; $i ??= requ
 function app_tz(): DateTimeZone { try { return new DateTimeZone((string)env('APP_TIMEZONE', 'Asia/Dhaka')); } catch (Exception $e) { return new DateTimeZone('Asia/Dhaka'); } }
 function fmt_hm(int $s): string { $s = max(0, $s); $h = intdiv($s, 3600); $m = intdiv($s % 3600, 60); return $h > 0 ? sprintf('%dh %02dm', $h, $m) : $m . 'm'; }   // 36h 24m, 45m
 function fmt_hms(int $s): string { $s = max(0, $s); return sprintf('%02d:%02d:%02d', intdiv($s, 3600), intdiv($s % 3600, 60), $s % 60); }               // 01:25:00
+// Break rule: every single break shows minutes + seconds (2m 40s); a TOTAL break time is rounded to the nearest minute (24m, 1h 05m).
+function fmt_break(int $s): string { $s = max(0, $s); return intdiv($s, 60) . 'm ' . sprintf('%02d', $s % 60) . 's'; }
+function fmt_break_total(int $s): string { $m = (int)round(max(0, $s) / 60); return $m >= 60 ? intdiv($m, 60) . 'h ' . sprintf('%02d', $m % 60) . 'm' : $m . 'm'; }
 function csrf_token(): string { return $_SESSION['csrf'] ??= bin2hex(random_bytes(32)); }
 function csrf_field(): string { return '<input type="hidden" name="_csrf" value="' . e(csrf_token()) . '">'; }
 function csrf_check(): bool { return isset($_POST['_csrf'], $_SESSION['csrf']) && hash_equals($_SESSION['csrf'], (string)$_POST['_csrf']); }
