@@ -16,10 +16,10 @@
         <img class="logo-light block h-auto w-45" src="<?= asset('brand/Krono_Logo_Light.svg') ?>" alt="Krono">
         <img class="logo-dark block h-auto w-45" src="<?= asset('brand/Krono_Logo_Dark.svg') ?>" alt="Krono">
       </div>
-      <span class="text-[9px] font-extrabold tracking-[1.4px] text-brand">PRODUCTIVITY WORKSPACE</span>
+      <span class="text-nano font-extrabold tracking-badge text-brand">PRODUCTIVITY WORKSPACE</span>
     </div>
     <?= $content ?? '' ?>
-    <p class="m-0 text-[11px] text-muted">Secure access to your time and work</p>
+    <p class="m-0 text-tiny text-muted">Secure access to your time and work</p>
   </div>
 </div>
 </body>

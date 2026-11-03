@@ -71,3 +71,20 @@ Stack trace:
 #3 E:\Makehub\Krono\app\DashboardController.php(4): Auth::user()
 #4 E:\Makehub\Krono\public\index.php(28): DashboardController::index()
 #5 {main}
+[31-Oct-2026 20:14:49 UTC] PDOException: SQLSTATE[HY000] [2002] No connection could be made because the target machine actively refused it in E:\Makehub\Krono\app\Db.php:7
+Stack trace:
+#0 E:\Makehub\Krono\app\Db.php(7): PDO->__construct('mysql:host=127....', 'root', Object(SensitiveParameterValue), Array)
+#1 E:\Makehub\Krono\app\Db.php(13): Db::pdo()
+#2 E:\Makehub\Krono\app\Auth.php(21): Db::q('SELECT id, name...', Array)
+#3 E:\Makehub\Krono\app\DashboardController.php(4): Auth::user()
+#4 E:\Makehub\Krono\public\index.php(28): DashboardController::index()
+#5 {main}
+[03-Nov-2026 09:21:40 UTC] PDOException: SQLSTATE[42S02]: Base table or view not found: 1146 Table 'krono.workspace_members' doesn't exist in E:\Makehub\Krono\app\Db.php:13
+Stack trace:
+#0 E:\Makehub\Krono\app\Db.php(13): PDO->prepare('SELECT w.id, w....')
+#1 E:\Makehub\Krono\app\Workspace.php(15): Db::q('SELECT w.id, w....', Array)
+#2 E:\Makehub\Krono\app\Workspace.php(22): Workspace::forUser(7)
+#3 E:\Makehub\Krono\app\Dashboard.php(28): Workspace::ensureFor(7)
+#4 E:\Makehub\Krono\app\DashboardController.php(6): Dashboard::data(7, 'this')
+#5 E:\Makehub\Krono\public\index.php(28): DashboardController::index()
+#6 {main}

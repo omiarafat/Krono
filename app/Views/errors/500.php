@@ -1,5 +1,5 @@
-<div class="w-full rounded-[20px] border border-line bg-surface p-7.5 shadow-card">
-  <div class="mb-4.25 flex h-11.75 w-11.75 items-center justify-center rounded-[14px] bg-soft text-brand">
+<div class="w-full rounded-card border border-line bg-surface p-7.5 shadow-card">
+  <div class="mb-4.25 flex h-11.75 w-11.75 items-center justify-center rounded-tile bg-soft text-brand">
     <?= icon('shield') ?>
   </div>
   <h1>Something went wrong</h1>
