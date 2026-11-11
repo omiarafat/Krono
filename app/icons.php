@@ -19,4 +19,11 @@ return [
   'file' => '<path d="M6 3h8l5 5v13H6zM14 3v5h5"/>',
   'download' => '<path d="M12 3v12m0 0-4-4m4 4 4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/>',
   'desktop' => '<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/>',
+  'plus' => '<path d="M12 5v14M5 12h14"/>',
+  'close' => '<path d="m6 6 12 12M18 6 6 18"/>',
+  'more' => '<circle cx="5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/>',
+  'alert' => '<path d="M12 3.5 2.5 20h19zM12 10v4.5m0 3v.01"/>',
+  'chevron' => '<path d="m6 9 6 6 6-6"/>',
+  'edit' => '<path d="M4 20h4L19 9l-4-4L4 16zM13.5 6.5l4 4"/>',
+  'archive' => '<rect x="3" y="4" width="18" height="5" rx="1.5"/><path d="M5 9v9a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V9M10 13h4"/>',
 ];
