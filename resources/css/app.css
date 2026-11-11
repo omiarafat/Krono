@@ -40,7 +40,6 @@
 .btn { @apply inline-flex h-10 shrink-0 cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-xl border border-line bg-surface px-4 text-xs font-bold text-ink no-underline hover:bg-raised focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-not-allowed disabled:opacity-60; }
 .btn-primary { @apply border-brand bg-brand text-on-brand shadow-button hover:bg-brand-hover; }
 .btn-danger { @apply border-danger bg-danger text-on-brand hover:bg-danger/90; }
-.btn-quiet { @apply border-transparent bg-transparent text-muted hover:bg-raised hover:text-ink; }
 .field-label { @apply mb-1.75 block text-tiny font-bold text-ink; }
 .field-input { @apply block h-10 w-full rounded-control border border-line bg-surface px-3 text-xs text-ink placeholder:text-muted focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand aria-invalid:border-danger aria-invalid:bg-danger/5; }
 textarea.field-input { @apply h-auto min-h-20 resize-y py-2.5 leading-copy; }
