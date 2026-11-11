@@ -23,7 +23,5 @@ return [
   'close' => '<path d="m6 6 12 12M18 6 6 18"/>',
   'more' => '<circle cx="5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/>',
   'alert' => '<path d="M12 3.5 2.5 20h19zM12 10v4.5m0 3v.01"/>',
-  'chevron' => '<path d="m6 9 6 6 6-6"/>',
-  'edit' => '<path d="M4 20h4L19 9l-4-4L4 16zM13.5 6.5l4 4"/>',
   'archive' => '<rect x="3" y="4" width="18" height="5" rx="1.5"/><path d="M5 9v9a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V9M10 13h4"/>',
 ];

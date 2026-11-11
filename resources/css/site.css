@@ -1,11 +1,11 @@
-/* Tailwind v4 (no preflight) on top of the approved mockup CSS (components.css), so the design does not change.
-   Use Tailwind classes first. Anything Tailwind cannot express goes into components.css.
+/* Tailwind v4 (no preflight). base.css = theme variables + plain elements. app.css = named components.
+   Use Tailwind classes first. Repeated patterns become a named component in app.css.
    Build:  npm run css   (output: public/assets/css/site.css - commit it, hosting needs no Node) */
 @layer theme, base, components, utilities;
 @import "tailwindcss/theme.css" layer(theme);
 @import "tailwindcss/utilities.css" layer(utilities) source(none);
 @import "./fonts.css" layer(base);
-@import "./components.css" layer(components);
+@import "./base.css" layer(base);
 @import "./app.css" layer(components);
 @source "../../app/Views";
 @source "../../app/bootstrap.php";
