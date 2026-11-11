@@ -35,3 +35,80 @@
   border-radius: 7px 7px 2px 2px;
   background: linear-gradient(180deg, rgb(52 211 153 / .76), rgb(5 150 105 / .62));
 }
+
+/* Buttons and form fields (Projects and the pages after it) */
+.btn { @apply inline-flex h-10 shrink-0 cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-xl border border-line bg-surface px-4 text-xs font-bold text-ink no-underline hover:bg-raised focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-not-allowed disabled:opacity-60; }
+.btn-primary { @apply border-brand bg-brand text-on-brand shadow-button hover:bg-brand-hover; }
+.btn-danger { @apply border-danger bg-danger text-on-brand hover:bg-danger/90; }
+.btn-quiet { @apply border-transparent bg-transparent text-muted hover:bg-raised hover:text-ink; }
+.field-label { @apply mb-1.75 block text-tiny font-bold text-ink; }
+.field-input { @apply block h-10 w-full rounded-control border border-line bg-surface px-3 text-xs text-ink placeholder:text-muted focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand aria-invalid:border-danger aria-invalid:bg-danger/5; }
+textarea.field-input { @apply h-auto min-h-20 resize-y py-2.5 leading-copy; }
+.field-error { @apply mt-1.5 mb-0 text-tiny text-danger; }
+
+/* Status / Priority badge: colored dot + text label (never color alone) */
+.tag { @apply inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg px-2 py-1.25 text-micro font-bold leading-tight text-ink; }
+
+/* Modal (native <dialog>) */
+.modal-box { @apply m-auto w-full max-w-117.5 overflow-hidden rounded-panel border border-line bg-surface p-0 text-ink shadow-modal backdrop:bg-black/30; }
+.modal-head { @apply flex items-start gap-3 px-5.5 pt-5 pb-3.5; }
+.modal-body { @apply px-5.5 pt-1 pb-5; }
+.modal-foot { @apply flex justify-end gap-2.25 border-t border-line bg-page px-5.5 py-3.5; }
+
+/* Toast */
+.toast { @apply pointer-events-auto flex w-full max-w-sm items-start gap-2.75 rounded-xl border border-line bg-surface px-3.5 py-3.25 shadow-modal; }
+
+/* Custom dropdown + calendar (public/assets/js/krono-ui.js builds the markup; every select and date field gets it) */
+.kselect, .kdate { @apply relative block min-w-0; }
+.kselect-auto { @apply inline-block; }
+.kselect-trigger, .kdate-trigger { @apply flex h-10 w-full cursor-pointer items-center justify-between gap-2 rounded-control border border-line bg-surface px-3 text-left text-xs font-normal text-ink hover:border-brand/50 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand disabled:cursor-not-allowed disabled:opacity-60; }
+.kselect-trigger[aria-expanded="true"], .kdate-trigger[aria-expanded="true"] { @apply border-brand; }
+.kselect-trigger[aria-invalid="true"], .kdate-trigger[aria-invalid="true"] { @apply border-danger bg-danger/5; }
+.kselect-trigger svg, .kdate-trigger svg { @apply shrink-0 text-muted; }
+.kdate-trigger svg { @apply text-brand; }
+.kselect-sm .kselect-trigger { @apply h-9 text-tiny font-semibold text-muted; }
+.kselect-label { @apply flex min-w-0 items-center gap-2; }
+.kselect-text { @apply truncate; }
+.kdate-label.is-empty { @apply text-muted; }
+.kdot { @apply inline-block h-1.5 w-1.5 shrink-0 rounded-full; }
+
+.kpop { @apply fixed z-60 flex flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-modal; }
+.kselect-search { @apply border-b border-line bg-page p-2.5; }
+.kselect-searchbox { @apply flex h-9.5 items-center gap-2 rounded-control border border-line bg-surface px-3 text-muted focus-within:border-brand; }
+.kselect-searchbox input { @apply h-full min-w-0 flex-1 border-0 bg-transparent p-0 text-xs text-ink outline-none placeholder:text-muted; }
+.kselect-list { @apply min-h-0 overflow-y-auto p-1.5; max-height: 14.75rem; scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--muted) 45%, transparent) transparent; }
+.kselect-list::-webkit-scrollbar { width: 10px; }
+.kselect-list::-webkit-scrollbar-track { background: transparent; margin: 6px 0; }
+.kselect-list::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--muted) 40%, transparent); border-radius: 999px; border: 3px solid var(--surface); }
+.kselect-list::-webkit-scrollbar-thumb:hover { background: color-mix(in srgb, var(--muted) 65%, transparent); }
+.kselect-opt { @apply flex min-h-9.25 cursor-pointer items-center gap-2 rounded-lg px-2.5 py-2 text-xs text-ink; }
+.kselect-opt .kselect-text { @apply flex-1; }
+.kselect-opt.is-active { @apply bg-raised; }
+.kselect-opt[aria-selected="true"] { @apply bg-soft font-bold text-brand; }
+.kselect-opt[aria-disabled="true"] { @apply cursor-not-allowed opacity-50; }
+.kselect-meta { @apply text-tiny font-normal text-muted; }
+.kselect-check { @apply hidden text-brand; }
+.kselect-opt[aria-selected="true"] .kselect-check { @apply block; }
+.kselect-empty { @apply px-3 py-4 text-center text-tiny text-muted; }
+
+.kcal { @apply w-74; }
+.kcal-head { @apply flex items-center justify-between gap-2 border-b border-line px-3.5 py-3; }
+.kcal-title { @apply flex cursor-pointer items-center gap-1.5 rounded-lg border-0 bg-transparent px-2 py-1.5 text-xs font-extrabold text-ink hover:bg-raised; }
+.kcal-title svg { @apply h-3.5 w-3.5 text-muted; }
+.kcal-navs { @apply flex gap-1.5; }
+.kcal-nav { @apply flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border border-line bg-surface text-muted hover:bg-raised hover:text-ink; }
+.kcal-body { @apply px-3 pt-2.5 pb-1.5; }
+.kcal-grid { @apply grid grid-cols-7 gap-0.5; }
+.kcal-wd { @apply py-1.5 text-center text-nano font-bold text-muted; }
+.kday { @apply flex h-8.5 cursor-pointer items-center justify-center rounded-lg border-0 bg-transparent p-0 text-tiny text-ink hover:bg-soft hover:text-brand; }
+.kday.is-dim { @apply text-muted; }
+.kday.is-today { @apply font-extrabold text-brand shadow-active; box-shadow: inset 0 0 0 1px var(--brand); }
+.kday.is-sel { @apply bg-brand font-extrabold text-on-brand hover:bg-brand-hover hover:text-on-brand; }
+.kday:disabled { @apply cursor-not-allowed opacity-35 hover:bg-transparent hover:text-ink; }
+.kcal-pick { @apply grid grid-cols-3 gap-1.5 py-1; }
+.kcal-cell { @apply flex h-10 cursor-pointer items-center justify-center rounded-lg border-0 bg-transparent text-xs text-ink hover:bg-soft hover:text-brand; }
+.kcal-cell.is-sel { @apply bg-brand font-bold text-on-brand hover:bg-brand-hover hover:text-on-brand; }
+.kcal-foot { @apply flex items-center justify-between gap-2 border-t border-line px-3.5 py-2.5; }
+.kcal-foot-left { @apply flex gap-1; }
+.kcal-link { @apply cursor-pointer rounded-lg border-0 bg-transparent px-2.5 py-1.5 text-tiny font-bold text-brand hover:bg-soft; }
+.kselect > select, .kdate > input { display: none !important; }
