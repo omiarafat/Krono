@@ -4,19 +4,12 @@ $nav = $nav ?? 'dashboard'; $crumb = $crumb ?? ($title ?? 'Dashboard');
 $uname = (string)($user['name'] ?? ''); $uemail = (string)($user['email'] ?? '');
 $initial = mb_strtoupper(mb_substr(trim($uname) !== '' ? trim($uname) : $uemail, 0, 1));
 $items = [ // key => [label, icon, path]
-    'dashboard' => ['Dashboard', 'dashboard', '/dashboard'], 
-    'projects' => ['Projects', 'projects', '/projects'], 
-    'tasks' => ['Tasks', 'tasks', '/tasks'],
-    'time' => ['Time Tracking', 'time', '/time-tracking'], 
-    'attendance' => ['Attendance', 'attendance', '/attendance'], 
-    'reports' => ['Reports', 'reports', '/reports'],
-    'calendar' => ['Calendar', 'calendar', '/calendar'], 
-    'team' => ['Teams', 'team', '/teams'], 
-    'settings' => ['Settings', 'settings', '/settings'],
+    'dashboard' => ['Dashboard', 'dashboard', '/dashboard'], 'projects' => ['Projects', 'projects', '/projects'], 'tasks' => ['Tasks', 'tasks', '/tasks'],
+    'time' => ['Time Tracking', 'time', '/time-tracking'], 'attendance' => ['Attendance', 'attendance', '/attendance'], 'reports' => ['Reports', 'reports', '/reports'],
+    'calendar' => ['Calendar', 'calendar', '/calendar'], 'team' => ['Teams', 'team', '/teams'], 'settings' => ['Settings', 'settings', '/settings'],
 ];
 $tip = 'pointer-events-none absolute left-full top-1/2 z-50 ml-3 hidden -translate-y-1/2 whitespace-nowrap rounded-lg bg-ink px-2.5 py-1.5 text-tiny font-semibold text-page opacity-0 shadow-card transition-opacity collapsed:block';
-?>
-<!doctype html>
+?><!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -60,17 +53,11 @@ $tip = 'pointer-events-none absolute left-full top-1/2 z-50 ml-3 hidden -transla
       <div class="mx-auto flex h-18.5 max-w-310 items-center justify-between gap-3">
         <div class="flex min-w-0 items-center gap-3.5">
           <button type="button" data-sidebar-toggle class="icon-button" aria-label="Toggle sidebar"><?= icon('menu', 16) ?></button>
-          <div class="truncate text-xs text-muted">
-            Workspace <span class="mx-2 text-side-muted">›</span> <strong class="font-bold text-ink"><?= e($crumb) ?></strong>
-          </div>
+          <div class="truncate text-xs text-muted">Workspace <span class="mx-2 text-side-muted">›</span> <?php if (!empty($crumb2)): ?><a href="<?= url('/projects') ?>" class="text-muted no-underline hover:text-brand"><?= e($crumb) ?></a> <span class="mx-2 text-side-muted">›</span> <strong class="font-bold text-ink"><?= e($crumb2) ?></strong><?php else: ?><strong class="font-bold text-ink"><?= e($crumb) ?></strong><?php endif; ?></div>
         </div>
         <div class="flex items-center gap-3">
-          <button class="icon-button" type="button" aria-label="Search" title="Search (coming soon)">
-            <?= icon('search', 16) ?>
-          </button>
-          <button class="icon-button" type="button" aria-label="Notifications" title="Notifications (coming soon)">
-            <?= icon('bell', 16) ?>
-          </button>
+          <button class="icon-button" type="button" aria-label="Search" title="Search (coming soon)"><?= icon('search', 16) ?></button>
+          <button class="icon-button" type="button" aria-label="Notifications" title="Notifications (coming soon)"><?= icon('bell', 16) ?></button>
           <span class="mx-0.75 h-6 w-px bg-line"></span>
           <details class="relative" data-account-menu>
             <summary class="flex cursor-pointer list-none items-center gap-2.5 rounded-xl p-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand [&::-webkit-details-marker]:hidden" aria-label="Account menu">

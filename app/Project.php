@@ -98,22 +98,50 @@ final class Project {
                 [(int)$ws['id'], $v['name'], $v['description'] ?: null, $v['status'], $v['priority'], $v['start_date'], $v['due_date'] ?: null, $uid, $uid, $now, $now]);
             $id = (int)$pdo->lastInsertId();
             Db::q('INSERT INTO project_members (project_id, user_id, added_at) VALUES (?,?,?)', [$id, $uid, $now]);   // the leader is a member too
-            $pdo->commit(); return $id;
+            $pdo->commit();
+            Activity::log((int)$ws['id'], $id, $uid, 'project_created');
+            return $id;
         } catch (Throwable $e) { if ($pdo->inTransaction()) $pdo->rollBack(); throw $e; }
     }
 
-    static function update(int $id, array $v): void {
+    /** $old = the project row before the change (to notice a status change in the feed). */
+    static function update(array $old, array $v, int $uid): void {
+        $id = (int)$old['id'];
         Db::q('UPDATE projects SET name = ?, description = ?, status = ?, priority = ?, start_date = ?, due_date = ?, updated_at = ? WHERE id = ?',
             [$v['name'], $v['description'] ?: null, $v['status'], $v['priority'], $v['start_date'], $v['due_date'] ?: null, self::utcNow(), $id]);
+        if ($old['status'] !== $v['status']) Activity::log((int)$old['workspace_id'], $id, $uid, 'status_changed', self::STATUS[$v['status']]);
+        else Activity::log((int)$old['workspace_id'], $id, $uid, 'project_updated');
     }
 
     /** Archive: hide only. Returns what stays linked, so the message can say so. */
-    static function archive(int $id): array {
-        $linked = self::linked($id);
+    static function archive(array $p, int $uid): array {
+        $id = (int)$p['id']; $linked = self::linked($id);
         Db::q('UPDATE projects SET archived_at = ?, updated_at = ? WHERE id = ? AND archived_at IS NULL', [self::utcNow(), self::utcNow(), $id]);
+        Activity::log((int)$p['workspace_id'], $id, $uid, 'project_archived');
         return $linked;
     }
     static function linked(int $id): array {
         return ['tasks' => (int)Db::q('SELECT COUNT(*) FROM tasks WHERE project_id = ?', [$id])->fetchColumn(), 'logs' => (int)Db::q('SELECT COUNT(*) FROM task_time_logs WHERE project_id = ?', [$id])->fetchColumn()];
+    }
+
+    /** People on a project, leader first, then the creator, then the other members. @return array<int,string> id => name */
+    static function people(int $id): array {
+        $out = [];
+        foreach (['leader_id', 'created_by'] as $col)
+            foreach (Db::q("SELECT u.id, u.name FROM projects p JOIN users u ON u.id = p.$col WHERE p.id = ?", [$id])->fetchAll() as $r) $out[(int)$r['id']] ??= $r['name'];
+        foreach (Db::q('SELECT u.id, u.name FROM project_members pm JOIN users u ON u.id = pm.user_id WHERE pm.project_id = ? ORDER BY pm.added_at, u.id', [$id])->fetchAll() as $r) $out[(int)$r['id']] ??= $r['name'];
+        return $out;
+    }
+
+    /** Everything the Project Details page shows, calculated from the database. */
+    static function summary(array $p): array {
+        $id = (int)$p['id']; $counts = Task::counts($id); $people = self::people($id);
+        $lg = Db::q('SELECT COALESCE(SUM(duration_seconds), 0) s, COUNT(*) n FROM task_time_logs WHERE project_id = ?', [$id])->fetch(); $logged = (int)$lg['s'];
+        $active = 0;
+        if ($people) { $in = implode(',', array_fill(0, count($people), '?')); $active = (int)Db::q("SELECT COUNT(DISTINCT user_id) FROM attendance_sessions WHERE sign_out_at IS NULL AND user_id IN ($in)", array_keys($people))->fetchColumn(); }
+        $total = $counts['all']; $done = $counts['completed'];
+        $names = fn(?int $uid) => $uid ? ($people[$uid] ?? (Db::q('SELECT name FROM users WHERE id = ?', [$uid])->fetchColumn() ?: null)) : null;
+        return ['counts' => $counts, 'total' => $total, 'done' => $done, 'remaining' => $total - $done, 'percent' => $total > 0 ? (int)round(100 * $done / $total) : 0,
+                'logged' => $logged, 'logs' => (int)$lg['n'], 'people' => $people, 'active' => $active, 'leader' => $names((int)($p['leader_id'] ?: $p['created_by']))   /* no leader set = the creator leads */, 'creator' => $names((int)$p['created_by'])];
     }
 }
