@@ -32,7 +32,8 @@ if (PHP_SAPI !== 'cli') {
 
 function e(?string $s): string { return htmlspecialchars((string)$s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); }
 function url(string $p = '/'): string { return rtrim((string)env('APP_URL', ''), '/') . $p; }
-function asset(string $p): string { return url('/assets/' . $p); }
+// Adds ?v=<file time> so the browser always loads the newest CSS/JS after an update (no stale cache, no Ctrl+F5 needed).
+function asset(string $p): string { $f = ROOT . '/public/assets/' . $p; return url('/assets/' . $p) . (is_file($f) ? '?v=' . filemtime($f) : ''); }
 function redirect(string $p): never { header('Location: ' . url($p)); exit; }
 function icon(string $n, int $size = 22): string { static $i = null; $i ??= require ROOT . '/app/icons.php'; return '<svg class="ico" width="' . $size . '" height="' . $size . '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' . ($i[$n] ?? '') . '</svg>'; }
 // Workspace timezone: decides what "today", "this week" and "this month" mean. Stored times stay UTC.
