@@ -34,7 +34,7 @@ $note = 'mt-3.5 mb-0 text-tiny text-muted'; $link = 'text-tiny font-bold text-br
       <div class="mb-4 flex items-center justify-between gap-4">
         <div><h2>Weekly tracked time</h2><p class="text-tiny text-muted">Saved time logs · <?= e($weekLabel) ?> · <?= e(fmt_hm($dash['weekTotal'])) ?> total</p></div>
         <form method="get" action="<?= url('/dashboard') ?>">
-          <select name="week" aria-label="Week" onchange="this.form.submit()" class="h-9 cursor-pointer rounded-control border border-line bg-surface px-3 text-tiny text-muted">
+          <select name="week" aria-label="Week" data-kauto data-ksmall onchange="this.form.submit()" class="h-9 cursor-pointer rounded-control border border-line bg-surface px-3 text-tiny text-muted">
             <option value="this"<?= $dash['week'] === 'this' ? ' selected' : '' ?>>This week</option>
             <option value="last"<?= $dash['week'] === 'last' ? ' selected' : '' ?>>Last week</option>
           </select><noscript><button class="ml-2 h-9 rounded-control border border-line bg-surface px-3 text-tiny" type="submit">Go</button></noscript>

@@ -21,6 +21,9 @@
   --shadow-active: inset 3px 0 0 var(--brand);
   --leading-copy: 1.45;
   --tracking-eyebrow: 1.5px;   --tracking-badge: 1.4px;   --tracking-caption: 1.3px;   --tracking-label: 1.25px;   --tracking-stat: -.8px;
+  --shadow-modal: 0 18px 48px rgba(10, 35, 20, .18);
+  /* Status / Priority badge colors only (approved exception). Always shown with a text label. */
+  --color-tag-green: #059669;   --color-tag-gray: #687280;   --color-tag-amber: #F59E0B;   --color-tag-blue: #3882F6;   --color-tag-red: #EF4444;   --color-tag-violet: #8B5CF6;   --color-tag-lime: #10B981;
   --breakpoint-laptop: 71.875rem;
   --breakpoint-tablet: 62.5rem;
 }
