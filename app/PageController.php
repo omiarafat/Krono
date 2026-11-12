@@ -2,7 +2,7 @@
 /** Pages that are not built yet. They keep the menu working (same shell) until their stage. */
 final class PageController {
     const SOON = [ // path => [nav key, label, icon]
-        '/projects' => ['projects', 'Projects', 'projects'], '/tasks' => ['tasks', 'Tasks', 'tasks'], '/time-tracking' => ['time', 'Time Tracking', 'time'],
+        '/projects' => ['projects', 'Projects', 'projects'], '/time-tracking' => ['time', 'Time Tracking', 'time'],
         '/attendance' => ['attendance', 'Attendance', 'attendance'], '/reports' => ['reports', 'Reports', 'reports'], '/calendar' => ['calendar', 'Calendar', 'calendar'],
         '/teams' => ['team', 'Teams', 'team'], '/settings' => ['settings', 'Settings', 'settings'],
     ];

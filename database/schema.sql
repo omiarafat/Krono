@@ -198,3 +198,19 @@ CREATE TABLE IF NOT EXISTS attendance_breaks (
   KEY idx_brk_session (session_id, start_at),
   CONSTRAINT fk_brk_session FOREIGN KEY (session_id) REFERENCES attendance_sessions(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Activity feed of a project (project created / updated / status changed / archived, task added).
+-- Saved time logs are NOT copied here: the feed reads them straight from task_time_logs.
+CREATE TABLE IF NOT EXISTS activity_log (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  workspace_id BIGINT UNSIGNED NOT NULL,
+  project_id BIGINT UNSIGNED NOT NULL,
+  user_id BIGINT UNSIGNED NULL,
+  type VARCHAR(30) NOT NULL,
+  subject VARCHAR(200) NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  KEY idx_act_project (project_id, created_at),
+  CONSTRAINT fk_act_workspace FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE,
+  CONSTRAINT fk_act_project FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
+  CONSTRAINT fk_act_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
