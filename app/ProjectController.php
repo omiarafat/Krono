@@ -23,7 +23,7 @@ final class ProjectController {
     // ---------- details ----------
 
     /** The Project Details page. $form / $taskForm = a form that came back with errors (its modal reopens). */
-    private static function details(array $u, array $ws, array $p, string $tab, int $actPage, ?array $form = null, ?array $taskForm = null): void {
+    static function details(array $u, array $ws, array $p, string $tab, int $actPage, ?array $form = null, ?array $taskForm = null): void {
         $tz = Workspace::tz($ws); $id = (int)$p['id'];
         $uid = (int)$u['id']; $manage = Project::canManage($ws) && !$p['archived_at']; $add = Task::canAdd($ws, $p, $uid) && !$p['archived_at'];
         $failed = false; $s = $tasks = $feed = null;
@@ -77,23 +77,6 @@ final class ProjectController {
     }
 
     // ---------- add task ----------
-
-    /** "Add Task" on Project Details. */
-    static function addTask(): void {
-        [$u, $ws] = self::who(); $uid = (int)$u['id'];
-        $p = Project::find((int)($_POST['project_id'] ?? 0), $uid, $ws);
-        if (!$p) self::denied('/projects', 'That project is not available.');
-        $back = '/project?id=' . (int)$p['id'];
-        if ($p['archived_at'] || !Task::canAdd($ws, $p, $uid)) self::denied($back);
-        $people = array_keys(Project::people((int)$p['id']));
-        [$v, $err] = Task::validate($_POST, $people);
-        $fail = function (array $extra) use ($u, $ws, $p, $v, $err) { self::details($u, $ws, $p, 'all', 1, null, ['values' => $v, 'errors' => $err] + $extra); };
-        if ($err) { http_response_code(422); $fail([]); return; }
-        try { Task::create((int)$p['id'], $uid, $v); Activity::log((int)$ws['id'], (int)$p['id'], $uid, 'task_created', $v['title']); }
-        catch (Throwable $e) { error_log((string)$e); http_response_code(500); $fail(['failed' => true]); return; }
-        flash('ok', '“' . $v['title'] . '” was added to ' . $p['name'] . '.', 'Task created successfully');
-        redirect($back . '#tasks');
-    }
 
     /** Task Details is a later page. The row link already works and checks access. */
     static function taskSoon(): void {

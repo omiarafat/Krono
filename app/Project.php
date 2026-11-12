@@ -20,7 +20,7 @@ final class Project {
     private static function utcNow(): string { return gmdate('Y-m-d H:i:s'); }
 
     /** SQL (alias p) for "projects this person can see" + bound values. */
-    private static function visible(int $uid, array $ws): array {
+    static function visible(int $uid, array $ws): array {
         $sql = 'p.workspace_id = ?'; $v = [(int)$ws['id']];
         if (!self::canManage($ws)) { $sql .= ' AND (p.created_by = ? OR p.leader_id = ? OR EXISTS (SELECT 1 FROM project_members pm WHERE pm.project_id = p.id AND pm.user_id = ?))'; array_push($v, $uid, $uid, $uid); }
         return [$sql, $v];

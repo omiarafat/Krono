@@ -15,6 +15,9 @@ final class Activity {
             'status_changed' => 'changed the status to ' . ($subject ?? ''),
             'project_archived' => 'archived this project',
             'task_created' => 'added a task' . $q,
+            'task_updated' => 'updated the task' . $q,
+            'task_completed' => 'completed the task' . $q,
+            'task_deleted' => 'deleted the task' . $q,
             default => 'made a change',
         };
     }
