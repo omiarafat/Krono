@@ -24,7 +24,7 @@
 .dash-two-col {
   @apply grid gap-4.5;
   grid-template-columns: 1.2fr 1fr;
-  @variant max-tablet { grid-template-columns: 1fr; }
+  @variant max-tablet { grid-template-columns: minmax(0, 1fr); }
 }
 .chart-area {
   @apply flex h-41.25 items-end justify-around gap-4 rounded-control border-b border-line px-3.5 pt-2;
@@ -113,7 +113,7 @@ textarea.field-input { @apply h-auto min-h-20 resize-y py-2.5 leading-copy; }
 .kselect > select, .kdate > input { display: none !important; }
 
 /* Project Details */
-.detail-grid { @apply grid items-start gap-4.5; grid-template-columns: 1.85fr 1fr; @variant max-tablet { grid-template-columns: 1fr; } }
+.detail-grid { @apply grid items-start gap-4.5; grid-template-columns: minmax(0, 1.85fr) minmax(0, 1fr); @variant max-tablet { grid-template-columns: minmax(0, 1fr); } }
 .filter-pill { @apply inline-flex h-8 items-center gap-1 whitespace-nowrap rounded-full border border-line bg-surface px-3 text-tiny font-bold text-muted no-underline hover:text-ink; }
 .filter-pill[aria-current="true"] { @apply border-brand/40 bg-soft text-brand; }
 .filter-pill span { @apply font-medium; }

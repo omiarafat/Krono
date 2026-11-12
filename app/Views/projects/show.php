@@ -86,7 +86,7 @@ $muted = 'text-tiny text-muted'; $label = 'text-micro text-muted';
         <?php if (!$tasks): ?>
           <div class="flex flex-col items-center px-6 py-9 text-center"><h3 class="m-0 text-sm">No tasks in this view</h3><p class="mt-1.5 mb-4 text-tiny text-muted">Try another tab to see the rest of the tasks.</p><a class="btn" href="<?= e($self([], '#tasks')) ?>">Show all tasks</a></div>
         <?php else: ?>
-        <div class="overflow-x-auto rounded-xl border border-line">
+        <div class="relative overflow-x-auto rounded-xl border border-line">
           <table class="min-w-150">
             <thead><tr><th>Task</th><th>Status</th><th>Priority</th><th>Assignee</th><th>Due date</th><th>Time</th></tr></thead>
             <tbody>
@@ -153,7 +153,7 @@ $muted = 'text-tiny text-muted'; $label = 'text-micro text-muted';
 </div>
 
 <?php if ($canManage) include __DIR__ . '/_modals.php'; ?>
-<?php if ($canAdd && !$failed) include __DIR__ . '/_task-modal.php'; ?>
+<?php if ($canAdd && !$failed) { $taskProjects = [(int)$p['id'] => ['name' => $p['name'], 'tasks' => (int)$s['total'], 'people' => $s['people']]]; $taskFixed = (int)$p['id']; include ROOT . '/app/Views/tasks/_modal.php'; } ?>
 <?php if ($canManage || $canAdd) include __DIR__ . '/_discard.php'; ?>
 <?php include ROOT . '/app/Views/partials/toast.php'; ?>
 <script src="<?= asset('js/krono-modals.js') ?>" defer></script>

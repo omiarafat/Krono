@@ -5,6 +5,8 @@
                  data-date-order="start_date,due_date" second date cannot be before the first
    Open buttons: data-modal-open="dialog-id"  (+ data-fill='{"field":"value"}' to EDIT: fills the form and uses the data-edit texts)
    Texts       : [data-m-title] [data-m-sub] [data-m-submit] each with data-new="..." and data-edit="..."
+                 [data-only="new|edit"] is shown in that mode only; [data-fill-text="key"] shows that key of data-fill (e.g. the locked project name)
+   A field with data-dependent fires "change" after it is filled, so a field that depends on it (Assignee on Project) can rebuild first.
    Closing with unsaved input asks "Discard unsaved changes?" (#discard-modal). */
 (function () {
   'use strict';
@@ -33,10 +35,12 @@
     var o = (form.dataset.dateOrder || '').split(','); if (o.length !== 2) return;
     var a = form.elements[o[0]], b = form.elements[o[1]]; if (a.value) b.setAttribute('min', a.value); else b.removeAttribute('min');
   }
-  function texts(dlg, edit) {
+  function texts(dlg, edit, fill) {
     ['title', 'sub', 'submit'].forEach(function (k) {
       var el = $('[data-m-' + k + ']', dlg); if (el) el.textContent = el.getAttribute(edit ? 'data-edit' : 'data-new') || el.textContent;
     });
+    all('[data-only]', dlg).forEach(function (el) { el.hidden = el.dataset.only !== (edit ? 'edit' : 'new'); });
+    all('[data-fill-text]', dlg).forEach(function (el) { if (fill && fill[el.dataset.fillText] != null) el.textContent = fill[el.dataset.fillText]; });
   }
   function requestClose(dlg) {
     var form = $('form', dlg);
@@ -59,6 +63,7 @@
       dlg.setAttribute('data-saving', ''); submit.disabled = true; submit.textContent = 'Saving…';
     });
     if (dlg.hasAttribute('data-autoopen')) {   // the server sent the form back with errors: show it again with the values kept
+      texts(dlg, !!(form.elements.id && form.elements.id.value));
       dlg.showModal(); var first = $('[aria-invalid]', form) || $('input:not([type=hidden]), textarea', form); first && (first._kfocus || first).focus();
     }
   });
@@ -68,8 +73,11 @@
       var dlg = document.getElementById(btn.dataset.modalOpen), form = $('form', dlg), fill = btn.dataset.fill ? JSON.parse(btn.dataset.fill) : null;
       closeMenus(); form.reset(); clearErrors(form);
       var vals = Object.assign({}, JSON.parse(form.dataset.defaults || '{}'), fill || {});
-      Object.keys(vals).forEach(function (n) { var el = form.elements[n]; if (el) el.value = vals[n] == null ? '' : vals[n]; });
-      dueMin(form); sync(form); texts(dlg, !!fill);
+      Object.keys(vals).forEach(function (n) {
+        var el = form.elements[n]; if (!el) return; el.value = vals[n] == null ? '' : vals[n];
+        if (el.hasAttribute('data-dependent')) el.dispatchEvent(new Event('change'));
+      });
+      dueMin(form); sync(form); texts(dlg, !!fill, fill);
       dlg.showModal(); dlg._snap = ser(form); var f = $('input:not([type=hidden]), textarea', form); f && f.focus();
     });
   });
@@ -91,5 +99,19 @@
     });
     all('[data-modal-close]', am).forEach(function (b) { b.addEventListener('click', function () { am.close(); }); });
     $('form', am).addEventListener('submit', function () { var b = $('.btn-danger', am); b.disabled = true; b.textContent = 'Archiving…'; });
+  }
+
+  /* delete task: button carries data-task-delete (id), data-name, data-logs, data-time */
+  var dt = $('#delete-task-modal');
+  if (dt) {
+    all('[data-task-delete]', document).forEach(function (b) {
+      b.addEventListener('click', function () {
+        var n = +b.dataset.logs, linked = n > 0; $('form', dt).elements.id.value = b.dataset.taskDelete; $('[data-dt-name]', dt).textContent = '“' + b.dataset.name + '”';
+        all('[data-dt-free]', dt).forEach(function (x) { x.hidden = linked; }); all('[data-dt-linked]', dt).forEach(function (x) { x.hidden = !linked; });
+        $('[data-dt-counts]', dt).textContent = n + ' saved time log' + (n === 1 ? '' : 's') + ' (' + b.dataset.time + ')'; $('[data-dt-link]', dt).href = b.dataset.href; dt.showModal();
+      });
+    });
+    all('[data-modal-close]', dt).forEach(function (b) { b.addEventListener('click', function () { dt.close(); }); });
+    $('form', dt).addEventListener('submit', function () { var b = $('.btn-danger', dt); b.disabled = true; b.textContent = 'Deleting…'; });
   }
 })();

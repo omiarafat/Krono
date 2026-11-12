@@ -52,4 +52,13 @@ final class Ui {
         $clock = $t->format('g:i A');
         return $days === 0 ? "Today at $clock" : ($days === -1 ? "Yesterday at $clock" : $t->format('M d, Y') . ' · ' . $clock);
     }
+
+    /** Due label for a task: Today / Tomorrow / "Oct 24" (year added when it is not this year). @return array{0:string,1:bool} [label, overdue] */
+    static function due(?string $ymd, DateTimeZone $tz, bool $done = false): array {
+        if (!$ymd) return ['—', false];
+        $today = new DateTimeImmutable('today', $tz); $d = new DateTimeImmutable($ymd, $tz);
+        $days = (int)$today->diff($d)->format('%r%a');
+        $label = $days === 0 ? 'Today' : ($days === 1 ? 'Tomorrow' : $d->format($d->format('Y') === $today->format('Y') ? 'M d' : 'M d, Y'));
+        return [$label, $days < 0 && !$done];
+    }
 }
