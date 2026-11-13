@@ -1,4 +1,5 @@
 node_modules/
+# secrets and local-only files: never commit
 .env
 storage/logs/*
 !storage/logs/.gitkeep

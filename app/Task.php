@@ -133,4 +133,67 @@ final class Task {
         Db::q('DELETE FROM tasks WHERE id = ?', [(int)$t['id']]);
         Db::q('UPDATE projects SET updated_at = ? WHERE id = ?', [gmdate('Y-m-d H:i:s'), (int)$t['project_id']]);
     }
+
+    // ---------- Task Details ----------
+
+    /** One task with everything the details page shows, if the person may see its project (or null). */
+    static function full(int $id, int $uid, array $ws): ?array {
+        [$vis, $v] = Project::visible($uid, $ws);
+        $r = Db::q("SELECT t.*, p.name project_name, p.status project_status, p.leader_id, p.created_by project_creator, p.archived_at project_archived, c.name creator, a.name assignee, n.body notes
+            FROM tasks t JOIN projects p ON p.id = t.project_id LEFT JOIN users c ON c.id = t.created_by LEFT JOIN users a ON a.id = t.assignee_id LEFT JOIN task_notes n ON n.task_id = t.id
+            WHERE t.id = ? AND $vis", array_merge([$id], $v))->fetch();
+        return $r ?: null;
+    }
+
+    /** The task's project in the shape canAdd() reads. */
+    static function projectOf(array $t): array {
+        return ['id' => $t['project_id'], 'name' => $t['project_name'], 'leader_id' => $t['leader_id'], 'created_by' => $t['project_creator'] ?? $t['created_by'], 'archived_at' => $t['project_archived']];
+    }
+
+    /** What changed between a saved task and the new values: [[type, old, new], ...] for the task history. */
+    static function changes(array $old, array $v, array $people): array {
+        $name = fn($id) => $id ? ($people[(int)$id] ?? (string)Db::q('SELECT name FROM users WHERE id = ?', [(int)$id])->fetchColumn()) : '';
+        $due = fn($d) => $d ? Ui::date($d) : '';
+        $out = [];
+        if ($old['title'] !== $v['title']) $out[] = ['title', $old['title'], $v['title']];
+        if ($old['status'] !== $v['status']) $out[] = ['status', self::STATUS[$old['status']], self::STATUS[$v['status']]];
+        if ($old['priority'] !== $v['priority']) $out[] = ['priority', Project::PRIORITY[$old['priority']], Project::PRIORITY[$v['priority']]];
+        if ((string)$old['due_date'] !== (string)$v['due_date']) $out[] = ['due', $due($old['due_date']), $due($v['due_date'])];
+        if ((int)$old['assignee_id'] !== (int)$v['assignee_id']) $out[] = ['assignee', $name($old['assignee_id']), $name($v['assignee_id'])];
+        return $out;
+    }
+
+    /** A page of saved time logs of the task (every user's), newest first, with the total seconds. @return array{items:array,total:int,pages:int,page:int,seconds:int} */
+    static function logsPage(int $taskId, int $page, int $per): array {
+        $c = Db::q('SELECT COUNT(*) n, COALESCE(SUM(duration_seconds), 0) s FROM task_time_logs WHERE task_id = ?', [$taskId])->fetch();
+        $total = (int)$c['n']; $pages = max(1, (int)ceil($total / $per)); $page = min(max(1, $page), $pages);
+        $items = Db::q('SELECT l.started_at, l.duration_seconds, l.work_description, u.name FROM task_time_logs l JOIN users u ON u.id = l.user_id WHERE l.task_id = ? ORDER BY l.started_at DESC, l.id DESC LIMIT ' . $per . ' OFFSET ' . (($page - 1) * $per), [$taskId])->fetchAll();
+        return ['items' => $items, 'total' => $total, 'pages' => $pages, 'page' => $page, 'seconds' => (int)$c['s']];
+    }
+
+    /** Checks the "Edit description" form: description, notes (one per line) and the estimate. @return array{0:array,1:array} */
+    static function validateDetails(array $in): array {
+        $notes = array_values(array_filter(array_map('trim', preg_split('/\R/u', (string)($in['notes'] ?? ''))), fn($l) => $l !== ''));
+        $h = trim((string)($in['est_h'] ?? '')); $m = trim((string)($in['est_m'] ?? ''));
+        $v = ['description' => trim((string)($in['description'] ?? '')), 'notes' => implode("\n", $notes), 'est_h' => $h, 'est_m' => $m, 'estimate' => null];
+        $err = [];
+        if (mb_strlen($v['description']) > 2000) $err['description'] = 'Use 2000 characters or fewer.';
+        if (count($notes) > 20) $err['notes'] = 'Use 20 notes or fewer.';
+        foreach ($notes as $l) if (mb_strlen($l) > 200) { $err['notes'] = 'Keep each note under 200 characters.'; break; }
+        if (($h !== '' && !ctype_digit($h)) || ($m !== '' && !ctype_digit($m)) || (int)$h > 999 || (int)$m > 59) $err['estimate'] = 'Enter hours (0–999) and minutes (0–59).';
+        elseif ($h !== '' || $m !== '') { $v['estimate'] = (int)$h * 60 + (int)$m; if ($v['estimate'] === 0) $v['estimate'] = null; }
+        return [$v, $err];
+    }
+
+    /** Saves description, notes and estimate. @return string[] which of 'description', 'notes', 'estimate' changed */
+    static function saveDetails(array $old, array $v, int $uid): array {
+        $now = gmdate('Y-m-d H:i:s'); $id = (int)$old['id']; $changed = [];
+        if ((string)$old['description'] !== $v['description']) $changed[] = 'description';
+        if ((string)($old['notes'] ?? '') !== $v['notes']) $changed[] = 'notes';
+        if ((int)$old['estimate_minutes'] !== (int)$v['estimate']) $changed[] = 'estimate';
+        Db::q('UPDATE tasks SET description = ?, estimate_minutes = ?, updated_at = ? WHERE id = ?', [$v['description'] !== '' ? $v['description'] : null, $v['estimate'], $now, $id]);
+        Db::q('DELETE FROM task_notes WHERE task_id = ?', [$id]);
+        if ($v['notes'] !== '') Db::q('INSERT INTO task_notes (task_id, body, updated_by, updated_at) VALUES (?,?,?,?)', [$id, $v['notes'], $uid, $now]);
+        return $changed;
+    }
 }

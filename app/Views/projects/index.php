@@ -14,14 +14,14 @@ $fv = $form['values'] ?? ['name' => '', 'description' => '', 'start_date' => '',
     <p class="m-0 rounded-xl border border-line bg-surface px-3.5 py-2.5 text-tiny text-muted">You can see the projects you belong to. Owners, admins and managers create and edit projects.</p>
   <?php endif; ?>
 
-  <form method="get" action="<?= url('/projects') ?>" class="flex flex-wrap items-center gap-2.5" id="project-filters" role="search">
+  <form method="get" action="<?= url('/projects') ?>" class="flex flex-wrap items-center gap-2.5" id="project-filters" role="search" data-live data-live-target="project-results">
     <div class="flex h-10 min-w-48 flex-1 items-center gap-2 rounded-control border border-line bg-surface px-3 text-muted focus-within:outline-2 focus-within:outline-offset-1 focus-within:outline-brand">
       <?= icon('search', 16) ?>
-      <input type="search" name="q" value="<?= e($f['q']) ?>" placeholder="Search projects…" aria-label="Search projects" maxlength="100" class="h-full min-w-0 flex-1 border-0 bg-transparent p-0 text-xs text-ink outline-none placeholder:text-muted" <?= $f['q'] !== '' ? 'data-keep-focus' : '' ?>>
+      <input type="search" name="q" value="<?= e($f['q']) ?>" placeholder="Search projects…" aria-label="Search projects" maxlength="100" class="h-full min-w-0 flex-1 border-0 bg-transparent p-0 text-xs text-ink outline-none placeholder:text-muted">
     </div>
     <select name="status" aria-label="Status" data-kauto class="<?= $select ?>">
       <option value="all">All status</option>
-      <?php foreach (Project::STATUS as $k => $l): ?><option value="<?= $k ?>" data-dot="<?= Ui::dot('project', $k) ?>"<?= $f['status'] === $k ? ' selected' : '' ?>><?= e($l) ?></option><?php endforeach; ?>
+      <?php foreach (Project::STATUS as $k => $l): ?><option value="<?= $k ?>" data-tag="<?= Ui::tone('project', $k) ?>"<?= $f['status'] === $k ? ' selected' : '' ?>><?= e($l) ?></option><?php endforeach; ?>
       <option value="archived"<?= $f['status'] === 'archived' ? ' selected' : '' ?>>Archived</option>
     </select>
     <select name="sort" aria-label="Sort" data-kauto class="<?= $select ?>">
@@ -30,6 +30,7 @@ $fv = $form['values'] ?? ['name' => '', 'description' => '', 'start_date' => '',
     <noscript><button class="btn" type="submit">Apply</button></noscript>
   </form>
 
+  <div id="project-results" data-live-area class="flex flex-col gap-4.5">
   <?php if ($failed): ?>
     <div class="panel-card flex flex-col items-center px-10 py-12 text-center" role="alert">
       <div class="mb-4 flex h-16 w-16 items-center justify-center rounded-icon bg-tag-amber/15 text-tag-amber"><?= icon('alert', 28) ?></div>
@@ -43,7 +44,7 @@ $fv = $form['values'] ?? ['name' => '', 'description' => '', 'start_date' => '',
       <?php if ($filtered): ?>
         <h2 class="text-base">No results found</h2>
         <p class="mt-1.5 mb-5 max-w-md text-xs leading-copy text-muted">Try changing the search terms or clearing one or more filters.</p>
-        <a class="btn btn-primary" href="<?= url('/projects') ?>">Clear filters</a>
+        <a class="btn btn-primary" href="<?= url('/projects') ?>" data-live>Clear filters</a>
       <?php elseif ($canManage): ?>
         <h2 class="text-base">No projects yet</h2>
         <p class="mt-1.5 mb-5 max-w-md text-xs leading-copy text-muted">Create your first project to organize tasks and track the time your team saves.</p>
@@ -94,25 +95,16 @@ $fv = $form['values'] ?? ['name' => '', 'description' => '', 'start_date' => '',
       <nav class="flex items-center justify-between gap-3 text-tiny text-muted" aria-label="Pages">
         <span>Page <?= $pg ?> of <?= $list['pages'] ?> · <?= $list['total'] ?> projects</span>
         <span class="flex gap-2">
-          <?php if ($pg > 1): ?><a class="btn h-9" href="<?= e($q(['page' => $pg - 1])) ?>">← Previous</a><?php endif; ?>
-          <?php if ($pg < $list['pages']): ?><a class="btn h-9" href="<?= e($q(['page' => $pg + 1])) ?>">Next →</a><?php endif; ?>
+          <?php if ($pg > 1): ?><a class="btn h-9" data-live href="<?= e($q(['page' => $pg - 1])) ?>">← Previous</a><?php endif; ?>
+          <?php if ($pg < $list['pages']): ?><a class="btn h-9" data-live href="<?= e($q(['page' => $pg + 1])) ?>">Next →</a><?php endif; ?>
         </span>
       </nav>
     <?php endif; ?>
   <?php endif; ?>
+  </div>
 </div>
 
 <?php if ($canManage) { include __DIR__ . '/_modals.php'; include __DIR__ . '/_discard.php'; } ?>
 <?php include ROOT . '/app/Views/partials/toast.php'; ?>
 
-<script>
-(function(){
-var $=function(s,r){return (r||document).querySelector(s)}, all=function(s,r){return [].slice.call((r||document).querySelectorAll(s))};
-/* filters: selects submit at once, search waits until typing stops */
-var ff=$('#project-filters');
-if(ff){var t;all('select',ff).forEach(function(s){s.addEventListener('change',function(){ff.submit()})});
-  var si=$('input[name=q]',ff);si.addEventListener('input',function(){clearTimeout(t);t=setTimeout(function(){ff.submit()},450)});
-  if(si.hasAttribute('data-keep-focus')){si.focus();si.setSelectionRange(si.value.length,si.value.length)}}
-})();
-</script>
 <script src="<?= asset('js/krono-modals.js') ?>" defer></script>

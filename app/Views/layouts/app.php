@@ -53,7 +53,7 @@ $tip = 'pointer-events-none absolute left-full top-1/2 z-50 ml-3 hidden -transla
       <div class="mx-auto flex h-18.5 max-w-310 items-center justify-between gap-3">
         <div class="flex min-w-0 items-center gap-3.5">
           <button type="button" data-sidebar-toggle class="icon-button" aria-label="Toggle sidebar"><?= icon('menu', 16) ?></button>
-          <div class="truncate text-xs text-muted">Workspace <span class="mx-2 text-side-muted">›</span> <?php if (!empty($crumb2)): ?><a href="<?= url('/projects') ?>" class="text-muted no-underline hover:text-brand"><?= e($crumb) ?></a> <span class="mx-2 text-side-muted">›</span> <strong class="font-bold text-ink"><?= e($crumb2) ?></strong><?php else: ?><strong class="font-bold text-ink"><?= e($crumb) ?></strong><?php endif; ?></div>
+          <div class="truncate text-xs text-muted">Workspace <span class="mx-2 text-side-muted">›</span> <?php if (!empty($crumb2)): ?><a href="<?= url('/projects') ?>" class="text-muted no-underline hover:text-brand"><?= e($crumb) ?></a> <span class="mx-2 text-side-muted">›</span> <?php if (!empty($crumb3)): ?><a href="<?= e($crumb2url) ?>" class="text-muted no-underline hover:text-brand"><?= e($crumb2) ?></a> <span class="mx-2 text-side-muted">›</span> <strong class="font-bold text-ink"><?= e($crumb3) ?></strong><?php else: ?><strong class="font-bold text-ink"><?= e($crumb2) ?></strong><?php endif; ?><?php else: ?><strong class="font-bold text-ink"><?= e($crumb) ?></strong><?php endif; ?></div>
         </div>
         <div class="flex items-center gap-3">
           <button class="icon-button" type="button" aria-label="Search" title="Search (coming soon)"><?= icon('search', 16) ?></button>
@@ -88,5 +88,6 @@ document.addEventListener('click',function(e){
 });})();
 </script>
 <script src="<?= asset('js/krono-ui.js') ?>" defer></script>
+<script src="<?= asset('js/krono-live.js') ?>" defer></script>
 </body>
 </html>

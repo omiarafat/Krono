@@ -39,11 +39,11 @@ $locked = fn(string $name) => '<div class="flex h-10 items-center rounded-contro
       <div class="grid grid-cols-2 gap-3 max-sm:grid-cols-1">
         <div><label class="field-label" for="tf-assignee">Assignee</label>
           <select class="field-input" id="tf-assignee" name="assignee_id"<?= $bad('assignee_id') ?>><option value="">Unassigned</option><?php foreach ($people as $uid => $name): ?><option value="<?= (int)$uid ?>"<?= (int)$tv['assignee_id'] === (int)$uid ? ' selected' : '' ?>><?= e($name) ?></option><?php endforeach; ?></select><?= $err('assignee_id') ?></div>
-        <div><label class="field-label" for="tf-priority">Priority</label><select class="field-input" id="tf-priority" name="priority"><?php foreach (Project::PRIORITY as $k => $l): ?><option value="<?= $k ?>" data-dot="<?= Ui::dot('priority', $k) ?>"<?= $tv['priority'] === $k ? ' selected' : '' ?>><?= e($l) ?></option><?php endforeach; ?></select></div>
+        <div><label class="field-label" for="tf-priority">Priority</label><select class="field-input" id="tf-priority" name="priority"><?php foreach (Project::PRIORITY as $k => $l): ?><option value="<?= $k ?>" data-tag="<?= Ui::tone('priority', $k) ?>"<?= $tv['priority'] === $k ? ' selected' : '' ?>><?= e($l) ?></option><?php endforeach; ?></select></div>
       </div>
       <div class="grid grid-cols-2 gap-3 max-sm:grid-cols-1">
         <div><label class="field-label" for="tf-due">Due date</label><input class="field-input" type="date" id="tf-due" name="due_date" placeholder="No due date" value="<?= e($tv['due_date']) ?>"<?= $bad('due_date') ?>><?= $err('due_date') ?></div>
-        <div><label class="field-label" for="tf-status">Status</label><select class="field-input" id="tf-status" name="status"<?= $bad('status') ?>><?php foreach (Task::STATUS as $k => $l): ?><option value="<?= $k ?>" data-dot="<?= Ui::dot('task', $k) ?>"<?= $tv['status'] === $k ? ' selected' : '' ?>><?= e($l) ?></option><?php endforeach; ?></select><?= $err('status') ?></div>
+        <div><label class="field-label" for="tf-status">Status</label><select class="field-input" id="tf-status" name="status"<?= $bad('status') ?>><?php foreach (Task::STATUS as $k => $l): ?><option value="<?= $k ?>" data-tag="<?= Ui::tone('task', $k) ?>"<?= $tv['status'] === $k ? ' selected' : '' ?>><?= e($l) ?></option><?php endforeach; ?></select><?= $err('status') ?></div>
       </div>
     </div>
     <div class="modal-foot"><button type="button" class="btn" data-modal-close>Cancel</button><button type="submit" class="btn btn-primary" data-m-submit data-new="Create task" data-edit="Save changes"><?= $editing ? 'Save changes' : 'Create task' ?></button></div>
