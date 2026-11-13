@@ -43,7 +43,7 @@
     sel.parentNode.insertBefore(wrap, sel); wrap.appendChild(trig); wrap.appendChild(sel); sel.hidden = true; sel.tabIndex = -1; sel._kfocus = trig;
     var popEl = null, items = [], active = -1, off = null, input = null, list = null;
 
-    function optHTML(o) { return (o.dataset.dot ? '<i class="kdot ' + esc(o.dataset.dot) + '"></i>' : '') + '<span class="kselect-text">' + esc(o.textContent) + '</span>'; }
+    function optHTML(o) { return o.dataset.tag ? '<span class="tag tag-' + esc(o.dataset.tag) + '">' + esc(o.textContent) + '</span>' : '<span class="kselect-text">' + esc(o.textContent) + '</span>'; }
     function paint() {
       var o = sel.options[sel.selectedIndex];
       trig.innerHTML = '<span class="kselect-label">' + (o ? optHTML(o) : '') + '</span>' + I.chev; trig.disabled = sel.disabled;

@@ -78,14 +78,6 @@ final class ProjectController {
 
     // ---------- add task ----------
 
-    /** Task Details is a later page. The row link already works and checks access. */
-    static function taskSoon(): void {
-        [$u, $ws] = self::who();
-        $t = Db::q('SELECT t.title, t.project_id FROM tasks t WHERE t.id = ?', [(int)($_GET['id'] ?? 0)])->fetch();
-        if (!$t || !Project::find((int)$t['project_id'], (int)$u['id'], $ws)) { http_response_code(404); render('projects/not-found', ['title' => 'Task not found', 'user' => $u, 'nav' => 'projects', 'crumb' => 'Projects'], 'app'); return; }
-        render('pages/soon', ['title' => $t['title'], 'user' => $u, 'nav' => 'projects', 'crumb' => 'Projects', 'label' => 'Task details', 'icon' => 'tasks'], 'app');
-    }
-
     private static function denied(string $to, string $msg = "You don't have permission to manage this resource. Contact a workspace administrator if you think this is a mistake."): never {
         flash('error', $msg, 'Permission denied'); redirect($to);
     }

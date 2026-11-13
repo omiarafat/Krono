@@ -1,29 +1,20 @@
 <?php
 /** Small view helpers shared by pages: status / priority badges, avatars, friendly dates. One place, so every page looks the same. */
 final class Ui {
-    /** Badge colors: [background, dot]. Only used for Status / Priority (approved exception); the text label is always shown. */
-    private const TAG = [
-        'project' => [
-            'upcoming' => ['bg-tag-violet/14', 'bg-tag-violet'], 'planning' => ['bg-tag-blue/14', 'bg-tag-blue'], 'in_progress' => ['bg-tag-green/14', 'bg-tag-green'],
-            'on_hold' => ['bg-tag-red/14', 'bg-tag-red'], 'completed' => ['bg-tag-lime/14', 'bg-tag-lime'], 'archived' => ['bg-tag-gray/14', 'bg-tag-gray'],
-        ],
-        'task' => [
-            'todo' => ['bg-tag-gray/14', 'bg-tag-gray'], 'in_progress' => ['bg-tag-green/14', 'bg-tag-green'], 'review' => ['bg-tag-amber/14', 'bg-tag-amber'],
-            'on_hold' => ['bg-tag-red/14', 'bg-tag-red'], 'completed' => ['bg-tag-lime/14', 'bg-tag-lime'],
-        ],
-        'priority' => [
-            'high' => ['bg-tag-red/14', 'bg-tag-red'], 'medium' => ['bg-tag-amber/14', 'bg-tag-amber'], 'normal' => ['bg-tag-blue/14', 'bg-tag-blue'], 'low' => ['bg-tag-lime/14', 'bg-tag-lime'],
-        ],
+    /** Badge tones (css .tag-<tone>). Only for Status / Priority (approved exception); the text label is always shown. */
+    private const TONE = [
+        'project' => ['upcoming' => 'violet', 'planning' => 'blue', 'in_progress' => 'green', 'on_hold' => 'red', 'completed' => 'lime', 'archived' => 'gray'],
+        'task' => ['todo' => 'gray', 'in_progress' => 'green', 'review' => 'amber', 'on_hold' => 'red', 'completed' => 'lime'],
+        'priority' => ['high' => 'red', 'medium' => 'amber', 'normal' => 'blue', 'low' => 'lime'],
     ];
 
-    /** Dot color class, for the colored dot in dropdown rows (data-dot). */
-    static function dot(string $kind, string $key): string { return self::TAG[$kind][$key][1] ?? 'bg-tag-gray'; }
+    /** Tone name for a dropdown row (data-tag): the row and the closed select then show the same badge. */
+    static function tone(string $kind, string $key): string { return self::TONE[$kind][$key] ?? 'gray'; }
 
     /** @param string $label text shown (defaults to the key's normal label) */
     static function tag(string $kind, string $key, ?string $label = null): string {
-        [$bg, $dot] = self::TAG[$kind][$key] ?? ['bg-tag-gray/14', 'bg-tag-gray'];
         $label ??= ($kind === 'project' ? (Project::STATUS[$key] ?? ucfirst($key)) : ($kind === 'task' ? (Task::STATUS[$key] ?? ucfirst($key)) : (Project::PRIORITY[$key] ?? ucfirst($key))));
-        return '<span class="tag ' . $bg . '"><i class="h-1.5 w-1.5 shrink-0 rounded-full ' . $dot . '"></i>' . e($label) . '</span>';
+        return '<span class="tag tag-' . self::tone($kind, $key) . '">' . e($label) . '</span>';
     }
 
     /** Round avatar with initials. $size = Tailwind size classes, e.g. "h-6 w-6". */
@@ -60,5 +51,20 @@ final class Ui {
         $days = (int)$today->diff($d)->format('%r%a');
         $label = $days === 0 ? 'Today' : ($days === 1 ? 'Tomorrow' : $d->format($d->format('Y') === $today->format('Y') ? 'M d' : 'M d, Y'));
         return [$label, $days < 0 && !$done];
+    }
+
+    /** "Oct 19, 2026" for a UTC DATETIME, shown in the workspace timezone. */
+    static function day(string $utc, DateTimeZone $tz): string { return (new DateTimeImmutable($utc, new DateTimeZone('UTC')))->setTimezone($tz)->format('M d, Y'); }
+
+    /** Minutes as "12h", "1h 30m", "45m" (estimates). */
+    static function minutes(int $m): string { $h = intdiv($m, 60); $r = $m % 60; return $h && $r ? "{$h}h {$r}m" : ($h ? "{$h}h" : "{$r}m"); }
+
+    /** "Today", "In 1 day", "3 days overdue" for a due date. @return array{0:string,1:bool} [text, overdue] */
+    static function dueIn(?string $ymd, DateTimeZone $tz): array {
+        if (!$ymd) return ['No due date', false];
+        $days = (int)(new DateTimeImmutable('today', $tz))->diff(new DateTimeImmutable($ymd, $tz))->format('%r%a');
+        if ($days === 0) return ['Due today', false];
+        if ($days > 0) return ['In ' . $days . ' day' . ($days === 1 ? '' : 's'), false];
+        return [-$days . ' day' . ($days === -1 ? '' : 's') . ' overdue', true];
     }
 }

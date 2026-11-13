@@ -7,13 +7,17 @@
 @import "./fonts.css" layer(base);
 @import "./base.css" layer(base);
 @import "./app.css" layer(components);
-@source "../../app/Views";
-@source "../../app/bootstrap.php";
+@source "../../app";   /* every PHP file that prints class names (views, Ui.php, controllers) */
 
 /* Sidebar is in icon mode (set on <html data-sidebar="collapsed">): use as  collapsed:hidden  */
 @custom-variant collapsed (:where([data-sidebar="collapsed"]) &);
 
 /* Fixed design values from the mockups (same in Light and Dark). Rule: no [..] values in markup, add a token here instead. */
+/* Status / Priority badge colors only (approved exception). "static" = always written to the CSS, even if no utility class uses them. Always shown with a text label. */
+@theme static {
+  --color-tag-green: #059669;   --color-tag-gray: #687280;   --color-tag-amber: #F59E0B;   --color-tag-blue: #3882F6;   --color-tag-red: #EF4444;   --color-tag-violet: #8B5CF6;   --color-tag-lime: #10B981;
+}
+
 @theme {
   --text-nano: 9px;   --text-micro: 10px;   --text-tiny: 11px;   --text-ui: 13px;   --text-stat: 23px;
   --radius-control: 10px;   --radius-icon: 13px;   --radius-tile: 14px;   --radius-panel: 17px;   --radius-card: 20px;
@@ -22,8 +26,6 @@
   --leading-copy: 1.45;
   --tracking-eyebrow: 1.5px;   --tracking-badge: 1.4px;   --tracking-caption: 1.3px;   --tracking-label: 1.25px;   --tracking-stat: -.8px;
   --shadow-modal: 0 18px 48px rgba(10, 35, 20, .18);
-  /* Status / Priority badge colors only (approved exception). Always shown with a text label. */
-  --color-tag-green: #059669;   --color-tag-gray: #687280;   --color-tag-amber: #F59E0B;   --color-tag-blue: #3882F6;   --color-tag-red: #EF4444;   --color-tag-violet: #8B5CF6;   --color-tag-lime: #10B981;
   --breakpoint-laptop: 71.875rem;
   --breakpoint-tablet: 62.5rem;
 }

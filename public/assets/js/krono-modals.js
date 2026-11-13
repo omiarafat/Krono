@@ -68,19 +68,22 @@
     }
   });
 
-  all('[data-modal-open]').forEach(function (btn) {
-    btn.addEventListener('click', function () {
-      var dlg = document.getElementById(btn.dataset.modalOpen), form = $('form', dlg), fill = btn.dataset.fill ? JSON.parse(btn.dataset.fill) : null;
-      closeMenus(); form.reset(); clearErrors(form);
-      var vals = Object.assign({}, JSON.parse(form.dataset.defaults || '{}'), fill || {});
-      Object.keys(vals).forEach(function (n) {
-        var el = form.elements[n]; if (!el) return; el.value = vals[n] == null ? '' : vals[n];
-        if (el.hasAttribute('data-dependent')) el.dispatchEvent(new Event('change'));
+  /* buttons that open a modal. bind(root) also runs on results that live filters swap in ("krono:content") */
+  function bindOpen(root) {
+    all('[data-modal-open]', root).forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var dlg = document.getElementById(btn.dataset.modalOpen), form = $('form', dlg), fill = btn.dataset.fill ? JSON.parse(btn.dataset.fill) : null;
+        closeMenus(); form.reset(); clearErrors(form);
+        var vals = Object.assign({}, JSON.parse(form.dataset.defaults || '{}'), fill || {});
+        Object.keys(vals).forEach(function (n) {
+          var el = form.elements[n]; if (!el) return; el.value = vals[n] == null ? '' : vals[n];
+          if (el.hasAttribute('data-dependent')) el.dispatchEvent(new Event('change'));
+        });
+        dueMin(form); sync(form); texts(dlg, !!fill, fill);
+        dlg.showModal(); dlg._snap = ser(form); var f = $('input:not([type=hidden]), textarea', form); f && f.focus();
       });
-      dueMin(form); sync(form); texts(dlg, !!fill, fill);
-      dlg.showModal(); dlg._snap = ser(form); var f = $('input:not([type=hidden]), textarea', form); f && f.focus();
     });
-  });
+  }
 
   if (discard) {
     $('[data-discard-keep]', discard).addEventListener('click', function () { discard.close(); asking = null; });
@@ -88,30 +91,38 @@
   }
 
   /* archive confirmation */
-  var am = $('#archive-modal');
+  var am = $('#archive-modal'), bindArchive = function () {};
   if (am) {
-    all('[data-project-archive]').forEach(function (b) {
-      b.addEventListener('click', function () {
-        closeMenus(); $('form', am).elements.id.value = b.dataset.projectArchive; $('[data-am-name]', am).textContent = b.dataset.name;
-        var t = +b.dataset.tasks, l = +b.dataset.logs;
-        $('[data-am-counts]', am).textContent = t + ' task' + (t === 1 ? '' : 's') + ' and ' + l + ' saved time log' + (l === 1 ? '' : 's') + ' are linked to this project.'; am.showModal();
+    bindArchive = function (root) {
+      all('[data-project-archive]', root).forEach(function (b) {
+        b.addEventListener('click', function () {
+          closeMenus(); $('form', am).elements.id.value = b.dataset.projectArchive; $('[data-am-name]', am).textContent = b.dataset.name;
+          var t = +b.dataset.tasks, l = +b.dataset.logs;
+          $('[data-am-counts]', am).textContent = t + ' task' + (t === 1 ? '' : 's') + ' and ' + l + ' saved time log' + (l === 1 ? '' : 's') + ' are linked to this project.'; am.showModal();
+        });
       });
-    });
+    };
     all('[data-modal-close]', am).forEach(function (b) { b.addEventListener('click', function () { am.close(); }); });
     $('form', am).addEventListener('submit', function () { var b = $('.btn-danger', am); b.disabled = true; b.textContent = 'Archiving…'; });
   }
 
   /* delete task: button carries data-task-delete (id), data-name, data-logs, data-time */
-  var dt = $('#delete-task-modal');
+  var dt = $('#delete-task-modal'), bindDelete = function () {};
   if (dt) {
-    all('[data-task-delete]', document).forEach(function (b) {
-      b.addEventListener('click', function () {
-        var n = +b.dataset.logs, linked = n > 0; $('form', dt).elements.id.value = b.dataset.taskDelete; $('[data-dt-name]', dt).textContent = '“' + b.dataset.name + '”';
-        all('[data-dt-free]', dt).forEach(function (x) { x.hidden = linked; }); all('[data-dt-linked]', dt).forEach(function (x) { x.hidden = !linked; });
-        $('[data-dt-counts]', dt).textContent = n + ' saved time log' + (n === 1 ? '' : 's') + ' (' + b.dataset.time + ')'; $('[data-dt-link]', dt).href = b.dataset.href; dt.showModal();
+    bindDelete = function (root) {
+      all('[data-task-delete]', root).forEach(function (b) {
+        b.addEventListener('click', function () {
+          var n = +b.dataset.logs, linked = n > 0; $('form', dt).elements.id.value = b.dataset.taskDelete; $('[data-dt-name]', dt).textContent = '“' + b.dataset.name + '”';
+          all('[data-dt-free]', dt).forEach(function (x) { x.hidden = linked; }); all('[data-dt-linked]', dt).forEach(function (x) { x.hidden = !linked; });
+          $('[data-dt-counts]', dt).textContent = n + ' saved time log' + (n === 1 ? '' : 's') + ' (' + b.dataset.time + ')'; $('[data-dt-link]', dt).href = b.dataset.href; dt.showModal();
+        });
       });
-    });
+    };
     all('[data-modal-close]', dt).forEach(function (b) { b.addEventListener('click', function () { dt.close(); }); });
     $('form', dt).addEventListener('submit', function () { var b = $('.btn-danger', dt); b.disabled = true; b.textContent = 'Deleting…'; });
   }
+
+  function bindAll(root) { bindOpen(root); bindArchive(root); bindDelete(root); }
+  bindAll(document);
+  document.addEventListener('krono:content', function (e) { bindAll(e.detail); });
 })();

@@ -12,7 +12,7 @@ $routes = [
     'GET /register' => [$A, 'showRegister'], 'POST /register' => [$A, 'register'],
     'GET /verify' => [$A, 'showVerify'], 'POST /verify' => [$A, 'verify'], 'POST /verify/resend' => [$A, 'resend'],
     'POST /logout' => [$A, 'logout'], 'GET /dashboard' => [DashboardController::class, 'index'],
-    'GET /projects' => [ProjectController::class, 'index'], 'POST /projects/save' => [ProjectController::class, 'save'], 'POST /projects/archive' => [ProjectController::class, 'archive'], 'GET /project' => [ProjectController::class, 'show'], 'GET /task' => [ProjectController::class, 'taskSoon'],
+    'GET /projects' => [ProjectController::class, 'index'], 'POST /projects/save' => [ProjectController::class, 'save'], 'POST /projects/archive' => [ProjectController::class, 'archive'], 'GET /project' => [ProjectController::class, 'show'], 'GET /task' => [TaskController::class, 'show'], 'POST /tasks/details' => [TaskController::class, 'saveDetails'],
     'GET /tasks' => [TaskController::class, 'index'], 'POST /tasks/save' => [TaskController::class, 'save'], 'POST /tasks/toggle' => [TaskController::class, 'toggle'], 'POST /tasks/delete' => [TaskController::class, 'delete'],
     'POST /open-app' => [$A, 'openApp'], 'GET /auth/handoff' => [$A, 'webHandoff'],
 ];
