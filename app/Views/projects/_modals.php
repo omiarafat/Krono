@@ -25,8 +25,8 @@ $defaults = ['id' => '', 'name' => '', 'description' => '', 'start_date' => '', 
         <div><label class="field-label" for="pf-due">Due date</label><input class="field-input" type="date" id="pf-due" name="due_date" placeholder="No due date" value="<?= e($fv['due_date']) ?>" <?= isset($fe['due_date']) ? 'aria-invalid="true"' : '' ?>><?php if (isset($fe['due_date'])): ?><p class="field-error"><?= e($fe['due_date']) ?></p><?php endif; ?></div>
       </div>
       <div class="grid grid-cols-2 gap-3 max-sm:grid-cols-1">
-        <div><label class="field-label" for="pf-status">Project status</label><select class="field-input" id="pf-status" name="status"><?php foreach (Project::STATUS as $k => $l): ?><option value="<?= $k ?>" data-dot="<?= Ui::dot('project', $k) ?>"<?= $fv['status'] === $k ? ' selected' : '' ?>><?= e($l) ?></option><?php endforeach; ?></select></div>
-        <div><label class="field-label" for="pf-priority">Priority</label><select class="field-input" id="pf-priority" name="priority"><?php foreach (Project::PRIORITY as $k => $l): ?><option value="<?= $k ?>" data-dot="<?= Ui::dot('priority', $k) ?>"<?= $fv['priority'] === $k ? ' selected' : '' ?>><?= e($l) ?></option><?php endforeach; ?></select></div>
+        <div><label class="field-label" for="pf-status">Project status</label><select class="field-input" id="pf-status" name="status"><?php foreach (Project::STATUS as $k => $l): ?><option value="<?= $k ?>" data-tag="<?= Ui::tone('project', $k) ?>"<?= $fv['status'] === $k ? ' selected' : '' ?>><?= e($l) ?></option><?php endforeach; ?></select></div>
+        <div><label class="field-label" for="pf-priority">Priority</label><select class="field-input" id="pf-priority" name="priority"><?php foreach (Project::PRIORITY as $k => $l): ?><option value="<?= $k ?>" data-tag="<?= Ui::tone('priority', $k) ?>"<?= $fv['priority'] === $k ? ' selected' : '' ?>><?= e($l) ?></option><?php endforeach; ?></select></div>
       </div>
     </div>
     <div class="modal-foot">

@@ -65,7 +65,7 @@ $muted = 'text-tiny text-muted'; $label = 'text-micro text-muted';
 
   <div class="detail-grid">
     <!-- tasks -->
-    <section class="panel-card p-5" id="tasks">
+    <section class="panel-card p-5" id="tasks" data-live-area>
       <div class="flex items-start justify-between gap-3">
         <div><h2>Project Tasks</h2><div class="mt-1 <?= $muted ?>"><?= $s['total'] ?> task<?= $s['total'] === 1 ? '' : 's' ?> in this project</div></div>
         <?php if ($canAdd): ?><button type="button" class="btn btn-primary h-9" data-modal-open="task-modal"><?= icon('plus', 15) ?> Add Task</button><?php endif; ?>
@@ -80,7 +80,7 @@ $muted = 'text-tiny text-muted'; $label = 'text-micro text-muted';
       <?php else: ?>
         <div class="mt-3.5 mb-2.5 flex flex-wrap gap-2" role="tablist" aria-label="Filter tasks">
           <?php foreach (['all' => 'All'] + Task::STATUS as $k => $l): if ($k === 'on_hold' && $s['counts']['on_hold'] === 0 && $tab !== 'on_hold') continue; ?>
-            <a class="filter-pill" href="<?= e($self($k === 'all' ? [] : ['tab' => $k], '#tasks')) ?>"<?= $tab === $k ? ' aria-current="true"' : '' ?>><?= e($l) ?> <span>(<?= $s['counts'][$k] ?>)</span></a>
+            <a class="filter-pill" data-live href="<?= e($self($k === 'all' ? [] : ['tab' => $k], '#tasks')) ?>"<?= $tab === $k ? ' aria-current="true"' : '' ?>><?= e($l) ?> <span>(<?= $s['counts'][$k] ?>)</span></a>
           <?php endforeach; ?>
         </div>
         <?php if (!$tasks): ?>
@@ -131,10 +131,10 @@ $muted = 'text-tiny text-muted'; $label = 'text-micro text-muted';
       </section>
 
       <!-- activity -->
-      <section class="panel-card p-5" id="activity">
+      <section class="panel-card p-5" id="activity" data-live-area>
         <div class="mb-3 flex items-center justify-between"><h2>Recent Activity</h2>
-          <?php if ($activityAll): ?><a class="text-tiny font-bold text-brand no-underline hover:underline" href="<?= e($self([], '#activity')) ?>">Show less</a>
-          <?php elseif ($feed['total'] > count($feed['items'])): ?><a class="text-tiny font-bold text-brand no-underline hover:underline" href="<?= e($self(['activity' => 1], '#activity')) ?>">View all</a><?php endif; ?>
+          <?php if ($activityAll): ?><a class="text-tiny font-bold text-brand no-underline hover:underline" data-live href="<?= e($self([], '#activity')) ?>">Show less</a>
+          <?php elseif ($feed['total'] > count($feed['items'])): ?><a class="text-tiny font-bold text-brand no-underline hover:underline" data-live href="<?= e($self(['activity' => 1], '#activity')) ?>">View all</a><?php endif; ?>
         </div>
         <?php if (!$feed['items']): ?><p class="m-0 py-3 text-tiny text-muted">No activity yet. Changes and saved time will appear here.</p>
         <?php else: foreach ($feed['items'] as $a): ?>
@@ -143,8 +143,8 @@ $muted = 'text-tiny text-muted'; $label = 'text-micro text-muted';
         <?php endforeach; endif; ?>
         <?php if ($activityAll && $feed['pages'] > 1): ?>
           <div class="mt-2 flex items-center justify-between border-t border-line pt-3 text-tiny text-muted"><span>Page <?= $feed['page'] ?> of <?= $feed['pages'] ?></span><span class="flex gap-2">
-            <?php if ($feed['page'] > 1): ?><a class="btn h-8" href="<?= e($self(['activity' => 1, 'apage' => $feed['page'] - 1], '#activity')) ?>">← Newer</a><?php endif; ?>
-            <?php if ($feed['page'] < $feed['pages']): ?><a class="btn h-8" href="<?= e($self(['activity' => 1, 'apage' => $feed['page'] + 1], '#activity')) ?>">Older →</a><?php endif; ?></span></div>
+            <?php if ($feed['page'] > 1): ?><a class="btn h-8" data-live href="<?= e($self(['activity' => 1, 'apage' => $feed['page'] - 1], '#activity')) ?>">← Newer</a><?php endif; ?>
+            <?php if ($feed['page'] < $feed['pages']): ?><a class="btn h-8" data-live href="<?= e($self(['activity' => 1, 'apage' => $feed['page'] + 1], '#activity')) ?>">Older →</a><?php endif; ?></span></div>
         <?php endif; ?>
       </section>
     </aside>
