@@ -27,6 +27,7 @@
   function formUrl(form) {
     var p = new URLSearchParams();
     new FormData(form).forEach(function (v, k) { v = String(v).trim(); if (v !== '' && v !== 'all') p.append(k, v); });
+    all('input[data-default]', form).forEach(function (i) { if (i.value === i.dataset.default) p.delete(i.name); });   // a default date range keeps the address short
     var q = p.toString(); return form.getAttribute('action') + (q ? '?' + q : '');
   }
 
@@ -34,16 +35,29 @@
   function fillForm(form, url) {
     var p = new URL(url, location.href).searchParams;
     all('select, input[name]', form).forEach(function (el) {
-      if (el.type === 'hidden') return; var v = p.get(el.name);
+      if (el.type === 'hidden' && !el.hasAttribute('data-default')) return; var v = p.get(el.name);
+      if (el.hasAttribute('data-default')) { el.value = v !== null ? v : el.dataset.default; return; }
       el.value = v !== null ? v : (el.tagName === 'SELECT' ? el.options[0].value : '');
     });
+    (form._narrow || []).forEach(function (f) { f(false); });
     window.KronoUI && window.KronoUI.sync(form);
   }
 
   all('form[data-live]').forEach(function (form) {
     var target = form.dataset.liveTarget;
     form.addEventListener('submit', function (e) { e.preventDefault(); load(formUrl(form), target, 'push'); });
-    form.addEventListener('change', function (e) { if (e.target.tagName === 'SELECT') { clearTimeout(timer); load(formUrl(form), target, 'push'); } });
+    /* a select that depends on another (Task depends on Project): show only the matching options, and reset it when the other one changes */
+    all('select[data-depends]', form).forEach(function (sel) {
+      var opts = [].slice.call(sel.options), master = form.elements[sel.dataset.depends];
+      function narrow(reset) {
+        var v = master.value, keep = reset ? '' : sel.value; sel.innerHTML = '';
+        opts.forEach(function (o) { if (!o.value || !v || o.dataset[sel.dataset.depends] === v) sel.appendChild(o); });
+        sel.value = [].some.call(sel.options, function (o) { return o.value === keep; }) ? keep : '';
+        window.KronoUI && window.KronoUI.sync(form);
+      }
+      form.addEventListener('change', function (e) { if (e.target === master) narrow(true); }); narrow(false); (form._narrow = form._narrow || []).push(narrow);
+    });
+    form.addEventListener('change', function (e) { if (e.target.tagName === 'SELECT' || e.target.hasAttribute('data-live-change')) { clearTimeout(timer); load(formUrl(form), target, 'push'); } });
     form.addEventListener('input', function (e) {
       if (e.target.tagName !== 'INPUT') return; clearTimeout(timer);
       timer = setTimeout(function () { load(formUrl(form), target, 'replace'); }, 300);

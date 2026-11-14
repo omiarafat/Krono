@@ -182,13 +182,107 @@
     inp.addEventListener('change', paint); inp._k = api; paint();
   }
 
+  /* ---------- date range (presets + two-click calendar). Markup: <div data-krange data-today="Y-m-d"><input type="hidden" name="from"><input type="hidden" name="to"></div> ---------- */
+  var PRESETS = [['today', 'Today'], ['yesterday', 'Yesterday'], ['7', 'Last 7 days'], ['30', 'Last 30 days'], ['month', 'This month']];
+  function addDays(d, n) { return new Date(d.getFullYear(), d.getMonth(), d.getDate() + n); }
+  function presetRange(k, t) {
+    if (k === 'today') return [t, t]; if (k === 'yesterday') return [addDays(t, -1), addDays(t, -1)];
+    if (k === '7') return [addDays(t, -6), t]; if (k === '30') return [addDays(t, -29), t];
+    return [new Date(t.getFullYear(), t.getMonth(), 1), t];
+  }
+  function shortDay(d) { return MON[d.getMonth()].slice(0, 3) + ' ' + pad(d.getDate()); }
+
+  function enhanceRange(box) {
+    if (box._k) return; box._k = 1;
+    var fromI = box.querySelector('input[name="from"]'), toI = box.querySelector('input[name="to"]');
+    var t0 = parse(box.dataset.today) || new Date(), today = new Date(t0.getFullYear(), t0.getMonth(), t0.getDate());
+    var trig = el('button', 'kdate-trigger krange-trigger'); trig.type = 'button'; trig.setAttribute('aria-haspopup', 'dialog'); trig.setAttribute('aria-expanded', 'false'); trig.setAttribute('aria-label', 'Date range');
+    box.insertBefore(trig, box.firstChild);
+    var popEl = null, off = null, cur = null, draft = null, anchor = null, mode = 'preset';
+
+    function same(a, b) { return iso(a) === iso(b); }
+    function presetOf(a, b) { for (var i = 0; i < PRESETS.length; i++) { var r = presetRange(PRESETS[i][0], today); if (same(r[0], a) && same(r[1], b)) return PRESETS[i]; } return null; }
+    function label(a, b) { var p = presetOf(a, b); if (p) return p[1]; return a.getFullYear() === b.getFullYear() ? shortDay(a) + ' – ' + shortDay(b) + ', ' + b.getFullYear() : fmt(a) + ' – ' + fmt(b); }
+    function saved() { var a = parse(fromI.value), b = parse(toI.value); return a && b ? [a, b] : presetRange('30', today); }
+    function paint() { var r = saved(); trig.innerHTML = '<span class="kdate-label">' + esc(label(r[0], r[1])) + '</span>' + I.cal; }
+
+    function render() {
+      popEl.innerHTML = '';
+      var head = el('div', 'kcal-head'); head.appendChild(el('strong', 'text-sm', 'Custom date range'));
+      var nav = el('div', 'kcal-navs'), mon = el('span', 'krange-month', MON[cur.getMonth()].slice(0, 3) + ' ' + cur.getFullYear()), prev = el('button', 'kcal-nav', I.left), next = el('button', 'kcal-nav', I.right);
+      prev.type = next.type = 'button'; prev.setAttribute('aria-label', 'Previous month'); next.setAttribute('aria-label', 'Next month');
+      prev.addEventListener('click', function () { cur = new Date(cur.getFullYear(), cur.getMonth() - 1, 1); render(); });
+      next.addEventListener('click', function () { cur = new Date(cur.getFullYear(), cur.getMonth() + 1, 1); render(); });
+      nav.appendChild(mon); nav.appendChild(prev); nav.appendChild(next); head.appendChild(nav); popEl.appendChild(head);
+
+      var bar = el('div', 'krange-bar', I.cal + '<span>From <b>' + fmt(draft[0]) + '</b></span><span aria-hidden="true">→</span><span>To <b>' + fmt(draft[1]) + '</b></span>'); popEl.appendChild(bar);
+
+      var main = el('div', 'krange-main'), list = el('div', 'krange-presets'), act = mode === 'custom' ? null : presetOf(draft[0], draft[1]);
+      PRESETS.forEach(function (p) {
+        var b = el('button', 'krange-preset', esc(p[1])); b.type = 'button'; if (act && act[0] === p[0]) b.setAttribute('aria-current', 'true');
+        b.addEventListener('click', function () { var r = presetRange(p[0], today); draft = [r[0], r[1]]; anchor = null; mode = 'preset'; cur = new Date(r[1].getFullYear(), r[1].getMonth(), 1); render(); });
+        list.appendChild(b);
+      });
+      var cb = el('button', 'krange-preset', 'Custom range'); cb.type = 'button'; if (!act) cb.setAttribute('aria-current', 'true');
+      cb.addEventListener('click', function () { mode = 'custom'; render(); }); list.appendChild(cb); main.appendChild(list);
+
+      var cal = el('div', 'krange-cal'), g = el('div', 'kcal-grid'); WD.forEach(function (w) { g.appendChild(el('div', 'kcal-wd', w)); });
+      var first = new Date(cur.getFullYear(), cur.getMonth(), 1), start = addDays(first, -first.getDay());
+      for (var i = 0; i < 42; i++) {
+        (function (d) {
+          var b = el('button', 'kday', String(d.getDate())); b.type = 'button';
+          if (d.getMonth() !== cur.getMonth()) b.classList.add('is-dim');
+          if (same(d, today)) b.classList.add('is-today');
+          if (d >= draft[0] && d <= draft[1]) b.classList.add('is-range');
+          if (same(d, draft[0]) || same(d, draft[1])) { b.classList.add('is-sel'); b.setAttribute('aria-pressed', 'true'); }
+          if (d > today) b.disabled = true;
+          b.addEventListener('click', function () {
+            mode = 'custom';
+            if (!anchor) { anchor = d; draft = [d, d]; } else { draft = anchor <= d ? [anchor, d] : [d, anchor]; anchor = null; }
+            render();
+          });
+          g.appendChild(b);
+        })(addDays(start, i));
+      }
+      cal.appendChild(g); main.appendChild(cal); popEl.appendChild(main);
+
+      var foot = el('div', 'krange-foot', '<span class="krange-note">Dates use the workspace display timezone.</span>'), btns = el('div', 'flex gap-2');
+      var cancel = el('button', 'btn h-9', 'Cancel'), ok = el('button', 'btn btn-primary h-9', 'Apply range'); cancel.type = ok.type = 'button';
+      cancel.addEventListener('click', function () { api.close(); trig.focus(); });
+      ok.addEventListener('click', function () {
+        var a = iso(draft[0]), b = iso(draft[1]), ch = fromI.value !== a || toI.value !== b;
+        toI.value = b; fromI.value = a; paint(); api.close(); trig.focus(); if (ch) fromI.dispatchEvent(new Event('change', { bubbles: true }));
+      });
+      btns.appendChild(cancel); btns.appendChild(ok); foot.appendChild(btns); popEl.appendChild(foot);
+      place(popEl, trig, 0);
+    }
+    var api = {
+      sync: paint,
+      open: function () {
+        closeCurrent(); current = api; var r = saved(); draft = [r[0], r[1]]; anchor = null; mode = presetOf(r[0], r[1]) ? 'preset' : 'custom'; cur = new Date(r[1].getFullYear(), r[1].getMonth(), 1);
+        popEl = el('div', 'kpop krange-pop'); popEl.setAttribute('role', 'dialog'); popEl.setAttribute('aria-label', 'Choose date range');
+        box.appendChild(popEl); trig.setAttribute('aria-expanded', 'true'); render(); off = bindOutside(api, popEl, trig);
+      },
+      close: function () { if (!popEl) return; off && off(); off = null; popEl.remove(); popEl = null; trig.setAttribute('aria-expanded', 'false'); if (current === api) current = null; }
+    };
+    trig.addEventListener('click', function () { popEl ? api.close() : api.open(); });
+    fromI._k = api; paint();
+  }
+
   function init(root) {
     [].forEach.call((root || document).querySelectorAll('select'), enhanceSelect);
     [].forEach.call((root || document).querySelectorAll('input[type="date"]'), enhanceDate);
+    [].forEach.call((root || document).querySelectorAll('[data-krange]'), enhanceRange);
   }
   /* call after changing values from script (form.reset() is handled automatically) */
   function sync(root) { [].forEach.call((root || document).querySelectorAll('select,input'), function (e) { e._k && e._k.sync && e._k.sync(); }); }
   document.addEventListener('reset', function (e) { setTimeout(function () { sync(e.target); }, 0); }, true);
+  /* <form data-autosubmit>: submits when a field changes (date jumps). <tr data-href>: the whole row opens its link (links and buttons inside keep their own click). */
+  document.addEventListener('change', function (e) { var f = e.target.closest && e.target.closest('form[data-autosubmit]'); if (f) f.submit(); });
+  document.addEventListener('click', function (e) {
+    var tr = e.target.closest && e.target.closest('tr[data-href]'); if (!tr || e.defaultPrevented || e.button || e.metaKey || e.ctrlKey || e.shiftKey) return;
+    if (e.target.closest('a, button, input, select, summary')) return; location.href = tr.dataset.href;
+  });
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function () { init(); }); else init();
   window.KronoUI = { init: init, sync: sync };
 })();
