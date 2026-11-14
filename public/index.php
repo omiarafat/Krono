@@ -14,6 +14,7 @@ $routes = [
     'POST /logout' => [$A, 'logout'], 'GET /dashboard' => [DashboardController::class, 'index'],
     'GET /projects' => [ProjectController::class, 'index'], 'POST /projects/save' => [ProjectController::class, 'save'], 'POST /projects/archive' => [ProjectController::class, 'archive'], 'GET /project' => [ProjectController::class, 'show'], 'GET /task' => [TaskController::class, 'show'], 'POST /tasks/details' => [TaskController::class, 'saveDetails'],
     'GET /tasks' => [TaskController::class, 'index'], 'POST /tasks/save' => [TaskController::class, 'save'], 'POST /tasks/toggle' => [TaskController::class, 'toggle'], 'POST /tasks/delete' => [TaskController::class, 'delete'],
+    'GET /time-tracking' => [TimeLogController::class, 'index'], 'GET /attendance' => [AttendanceController::class, 'index'], 'GET /attendance/details' => [AttendanceController::class, 'details'],
     'POST /open-app' => [$A, 'openApp'], 'GET /auth/handoff' => [$A, 'webHandoff'],
 ];
 foreach (array_keys(PageController::SOON) as $soonPath) if (!isset($routes["GET $soonPath"])) $routes["GET $soonPath"] = fn() => PageController::soon($soonPath);
