@@ -21,6 +21,33 @@ if (!$has('projects', 'workspace_id')) {
     $pdo->exec('ALTER TABLE projects ADD COLUMN workspace_id BIGINT UNSIGNED NULL AFTER id, ADD KEY idx_projects_ws (workspace_id), ADD CONSTRAINT fk_projects_ws FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE');
     echo str_pad('projects.workspace_id', 28), "added\n";
 }
+// The workspace a person is currently working in (set when they accept an invitation). NULL = their first workspace.
+if (!$has('users', 'current_workspace_id')) {
+    $pdo->exec('ALTER TABLE users ADD COLUMN current_workspace_id BIGINT UNSIGNED NULL');
+    echo str_pad('users.current_workspace_id', 28), "added\n";
+}
+// Profile settings: the person's own timezone and date format (NULL / default = follow the workspace and the old look).
+if (!$has('users', 'timezone')) {
+    $pdo->exec('ALTER TABLE users ADD COLUMN timezone VARCHAR(64) NULL');
+    echo str_pad('users.timezone', 28), "added\n";
+}
+if (!$has('users', 'date_format')) {
+    $pdo->exec("ALTER TABLE users ADD COLUMN date_format VARCHAR(20) NOT NULL DEFAULT ''");
+    echo str_pad('users.date_format', 28), "added\n";
+}
+// New accounts follow the workspace date format until they choose their own (the column default only; existing rows are not touched).
+$pdo->exec("ALTER TABLE users ALTER COLUMN date_format SET DEFAULT ''");
+// Settings: profile photo, theme and notification choices (per person).
+$add = [
+    ['users', 'avatar', "VARCHAR(80) NULL"], ['users', 'theme', "VARCHAR(6) NOT NULL DEFAULT 'system'"], ['users', 'notify_email', 'TINYINT(1) NOT NULL DEFAULT 1'],
+    ['users', 'notify_weekly', 'TINYINT(1) NOT NULL DEFAULT 1'], ['users', 'notify_tips', 'TINYINT(1) NOT NULL DEFAULT 0'],
+    // Workspace defaults (Settings > Workspace > General)
+    ['workspaces', 'week_start', "VARCHAR(3) NOT NULL DEFAULT 'mon'"], ['workspaces', 'date_format', "VARCHAR(20) NOT NULL DEFAULT 'DD MMM YYYY'"],
+    ['workspaces', 'time_format', "VARCHAR(2) NOT NULL DEFAULT '12'"], ['workspaces', 'language', "VARCHAR(8) NOT NULL DEFAULT 'en'"],
+    // Audit Log shows whether an action worked
+    ['audit_log', 'result', "VARCHAR(8) NOT NULL DEFAULT 'success'"],
+];
+foreach ($add as [$t, $c, $def]) if (!$has($t, $c)) { $pdo->exec("ALTER TABLE `$t` ADD COLUMN `$c` $def"); echo str_pad("$t.$c", 28), "added\n"; }
 // Every account gets a personal workspace (owner). Existing projects join the workspace of the user who created them.
 foreach (Db::q('SELECT id FROM users')->fetchAll(PDO::FETCH_COLUMN) as $uid) Workspace::ensureFor((int)$uid);
 $n = Db::q('UPDATE projects p SET p.workspace_id = (SELECT m.workspace_id FROM workspace_members m WHERE m.user_id = p.created_by ORDER BY m.created_at LIMIT 1) WHERE p.workspace_id IS NULL')->rowCount();

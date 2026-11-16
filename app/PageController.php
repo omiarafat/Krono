@@ -4,7 +4,6 @@ final class PageController {
     const SOON = [ // path => [nav key, label, icon]
         '/projects' => ['projects', 'Projects', 'projects'],
         '/reports' => ['reports', 'Reports', 'reports'], '/calendar' => ['calendar', 'Calendar', 'calendar'],
-        '/teams' => ['team', 'Teams', 'team'], '/settings' => ['settings', 'Settings', 'settings'],
     ];
     static function soon(string $path): void {
         $u = Auth::user(); if (!$u) redirect('/login');

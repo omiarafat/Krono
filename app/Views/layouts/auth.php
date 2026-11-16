@@ -4,7 +4,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title><?= e($title ?? 'Krono') ?> · Krono</title>
-<script>try{var t=localStorage.getItem('krono-theme');if(t==='light'||t==='dark')document.documentElement.dataset.theme=t}catch(e){}</script>
 <link rel="icon" href="<?= asset('brand/Krono_Mark.svg') ?>">
 <link rel="stylesheet" href="<?= asset('css/site.css') ?>">
 </head>

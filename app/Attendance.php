@@ -123,14 +123,14 @@ final class Attendance {
     // ---------- display helpers ----------
 
     private static function local(string $utc, DateTimeZone $tz): DateTimeImmutable { return (new DateTimeImmutable($utc, new DateTimeZone('UTC')))->setTimezone($tz); }
-    static function clock(string $utc, DateTimeZone $tz): string { return self::local($utc, $tz)->format('h:i A'); }
-    static function dateTime(string $utc, DateTimeZone $tz): string { return self::local($utc, $tz)->format('M d, Y, h:i A'); }
+    static function clock(string $utc, DateTimeZone $tz): string { return self::local($utc, $tz)->format(Account::tf()); }
+    static function dateTime(string $utc, DateTimeZone $tz): string { return self::local($utc, $tz)->format(Account::df() . ', ' . Account::tf()); }
     /** Local date "Y-m-d" of a UTC time. */
     static function ymd(string $utc, DateTimeZone $tz): string { return self::local($utc, $tz)->format('Y-m-d'); }
     /** Sign-out cell: the clock time, with the date when it is not the sign-in day (overnight). */
     static function outLabel(array $s, DateTimeZone $tz): string {
         if (!$s['sign_out_at']) return '';
-        return self::ymd($s['sign_out_at'], $tz) === self::ymd($s['sign_in_at'], $tz) ? self::clock($s['sign_out_at'], $tz) : self::local($s['sign_out_at'], $tz)->format('M d, h:i A');
+        return self::ymd($s['sign_out_at'], $tz) === self::ymd($s['sign_in_at'], $tz) ? self::clock($s['sign_out_at'], $tz) : self::local($s['sign_out_at'], $tz)->format('M d, ' . Account::tf());
     }
     /** "(GMT+6) Dhaka" */
     static function tzLabel(DateTimeZone $tz): string {

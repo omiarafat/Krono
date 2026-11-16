@@ -238,3 +238,85 @@ CREATE TABLE IF NOT EXISTS task_activity (
   CONSTRAINT fk_tact_task FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE,
   CONSTRAINT fk_tact_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Teams: pending invitations (only the SHA-256 hash of the invitation token is stored) and an audit trail of access changes.
+CREATE TABLE IF NOT EXISTS workspace_invitations (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  workspace_id BIGINT UNSIGNED NOT NULL,
+  email VARCHAR(190) NOT NULL,
+  role ENUM('admin','manager','member','viewer') NOT NULL DEFAULT 'member',
+  manager_id BIGINT UNSIGNED NULL,
+  token_hash CHAR(64) NOT NULL,
+  status ENUM('pending','accepted','cancelled') NOT NULL DEFAULT 'pending',
+  invited_by BIGINT UNSIGNED NULL,
+  expires_at DATETIME NOT NULL,
+  accepted_at DATETIME NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_wi_token (token_hash),
+  KEY idx_wi_ws (workspace_id, status),
+  KEY idx_wi_email (email),
+  CONSTRAINT fk_wi_ws FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE,
+  CONSTRAINT fk_wi_manager FOREIGN KEY (manager_id) REFERENCES users(id) ON DELETE SET NULL,
+  CONSTRAINT fk_wi_by FOREIGN KEY (invited_by) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS audit_log (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  workspace_id BIGINT UNSIGNED NOT NULL,
+  actor_id BIGINT UNSIGNED NULL,
+  target_user_id BIGINT UNSIGNED NULL,
+  action VARCHAR(40) NOT NULL,
+  detail VARCHAR(255) NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  KEY idx_audit_ws (workspace_id, created_at),
+  KEY idx_audit_target (target_user_id),
+  CONSTRAINT fk_audit_ws FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE,
+  CONSTRAINT fk_audit_actor FOREIGN KEY (actor_id) REFERENCES users(id) ON DELETE SET NULL,
+  CONSTRAINT fk_audit_target FOREIGN KEY (target_user_id) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ===== 010_account_settings =====
+-- Profile settings: website sign-ins (so they can be listed and signed out) and the e-mail change that waits for a code.
+-- users.timezone / users.date_format are added by database/migrate.php.
+CREATE TABLE IF NOT EXISTS web_sessions (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  user_id BIGINT UNSIGNED NOT NULL,
+  sid_hash CHAR(64) NOT NULL,
+  device VARCHAR(150) NOT NULL DEFAULT 'Web browser',
+  ip VARCHAR(45) NOT NULL DEFAULT '',
+  created_at DATETIME NOT NULL,
+  last_seen_at DATETIME NOT NULL,
+  revoked_at DATETIME NULL,
+  UNIQUE KEY uq_web_sessions_sid (sid_hash),
+  KEY idx_web_sessions_user (user_id, last_seen_at),
+  CONSTRAINT fk_web_sessions_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS email_changes (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  user_id BIGINT UNSIGNED NOT NULL,
+  new_email VARCHAR(190) NOT NULL,
+  code_hash CHAR(64) NOT NULL,
+  expires_at DATETIME NOT NULL,
+  attempts TINYINT UNSIGNED NOT NULL DEFAULT 0,
+  consumed_at DATETIME NULL,
+  created_at DATETIME NOT NULL,
+  KEY idx_email_changes_user (user_id, id),
+  CONSTRAINT fk_email_changes_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS workspace_email (
+  workspace_id BIGINT UNSIGNED NOT NULL PRIMARY KEY,
+  provider VARCHAR(8) NOT NULL DEFAULT 'default',
+  from_name VARCHAR(100) NOT NULL DEFAULT '',
+  from_email VARCHAR(190) NOT NULL DEFAULT '',
+  reply_to VARCHAR(190) NOT NULL DEFAULT '',
+  smtp_host VARCHAR(190) NOT NULL DEFAULT '',
+  smtp_port SMALLINT UNSIGNED NOT NULL DEFAULT 587,
+  smtp_secure VARCHAR(8) NOT NULL DEFAULT 'tls',
+  smtp_user VARCHAR(190) NOT NULL DEFAULT '',
+  smtp_pass_enc TEXT NULL,
+  test_sent_at DATETIME NULL,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  CONSTRAINT fk_wemail_ws FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
