@@ -7,7 +7,7 @@ final class WsSettings {
         'invite_sent' => 'Member invited', 'invite_cancelled' => 'Invitation cancelled', 'invite_resent' => 'Invitation resent', 'invite_accepted' => 'Invitation accepted',
         'role_changed' => 'Role updated', 'manager_changed' => 'Reports-to changed', 'reactivated' => 'Member reactivated', 'deactivated' => 'Member deactivated',
         'email_change_requested' => 'Email change requested', 'email_changed' => 'Email changed', 'password_changed' => 'Password changed',
-        'workspace_updated' => 'Workspace settings updated', 'email_settings_updated' => 'Email settings updated', 'email_test' => 'Test email sent',
+        'workspace_updated' => 'Workspace settings updated',
     ];
 
     // ---------- General ----------
@@ -53,73 +53,6 @@ final class WsSettings {
         return $o;
     }
 
-    // ---------- E-mail ----------
-
-    private static function key(): string { return hash('sha256', 'krono-mail|' . (string)env('APP_KEY', ''), true); }
-    private static function seal(string $s): string { $iv = random_bytes(12); $c = openssl_encrypt($s, 'aes-256-gcm', self::key(), OPENSSL_RAW_DATA, $iv, $tag); return base64_encode($iv . $tag . $c); }
-    private static function unseal(?string $s): string {
-        $b = base64_decode((string)$s, true); if ($b === false || strlen($b) < 29) return '';
-        $p = openssl_decrypt(substr($b, 28), 'aes-256-gcm', self::key(), OPENSSL_RAW_DATA, substr($b, 0, 12), substr($b, 12, 16)); return $p === false ? '' : $p;
-    }
-
-    static function mail(int $wid): array {
-        $r = Db::q('SELECT * FROM workspace_email WHERE workspace_id = ?', [$wid])->fetch() ?: [];
-        $r += ['provider' => 'default', 'from_name' => '', 'from_email' => '', 'reply_to' => '', 'smtp_host' => '', 'smtp_port' => 587, 'smtp_secure' => 'tls', 'smtp_user' => '', 'smtp_pass_enc' => null, 'test_sent_at' => null];
-        $r['has_pass'] = $r['smtp_pass_enc'] !== null && $r['smtp_pass_enc'] !== '';
-        return $r;
-    }
-    /** What this server sends with when the workspace uses "Server default" (set in .env, never shown on screen). */
-    static function serverMail(): bool { return in_array(env('MAIL_MODE', 'log'), ['smtp'], true) || (env('APP_ENV') === 'local' && in_array(env('MAIL_MODE', 'log'), ['fixed', 'log'], true)); }
-    static function configured(array $m): bool { return $m['provider'] === 'smtp' ? ($m['smtp_host'] !== '' && $m['from_email'] !== '') : self::serverMail(); }
-
-    /** Settings for Mailer::send() (invitations and test mail), or null before anything is saved. */
-    static function mailConfig(int $wid): ?array {
-        try { $m = self::mail($wid); } catch (Throwable $e) { return null; }
-        $cfg = ['name' => $m['from_name'], 'email' => $m['from_email'], 'reply' => $m['reply_to'], 'smtp' => null];
-        if ($m['provider'] === 'smtp' && $m['smtp_host'] !== '') $cfg['smtp'] = ['host' => $m['smtp_host'], 'port' => (int)$m['smtp_port'], 'secure' => $m['smtp_secure'], 'user' => $m['smtp_user'], 'pass' => self::unseal($m['smtp_pass_enc'])];
-        return $cfg;
-    }
-
-    static function checkMail(array $p, array $cur): array {
-        $err = []; $mail = fn(string $k) => mb_strtolower(trim((string)($p[$k] ?? '')));
-        $c = ['provider' => ($p['provider'] ?? '') === 'smtp' ? 'smtp' : 'default', 'from_name' => trim((string)($p['from_name'] ?? '')), 'from_email' => $mail('from_email'), 'reply_to' => $mail('reply_to'),
-              'smtp_host' => trim((string)($p['smtp_host'] ?? '')), 'smtp_port' => (int)($p['smtp_port'] ?? 587), 'smtp_secure' => (string)($p['smtp_secure'] ?? 'tls'), 'smtp_user' => trim((string)($p['smtp_user'] ?? '')), 'smtp_pass' => (string)($p['smtp_pass'] ?? '')];
-        if (mb_strlen($c['from_name']) > 100 || preg_match('/[\r\n<>]/', $c['from_name'])) $err['from_name'] = 'Use up to 100 characters, without line breaks or < >.';
-        if ($c['from_email'] !== '' && !filter_var($c['from_email'], FILTER_VALIDATE_EMAIL)) $err['from_email'] = 'Enter a valid email address.';
-        if ($c['reply_to'] !== '' && !filter_var($c['reply_to'], FILTER_VALIDATE_EMAIL)) $err['reply_to'] = 'Enter a valid email address.';
-        if ($c['provider'] === 'smtp') {
-            if ($c['from_email'] === '') $err['from_email'] = 'Enter the address the mail is sent from.';
-            if ($c['smtp_host'] === '' || !preg_match('/^[A-Za-z0-9.-]{1,190}$/', $c['smtp_host'])) $err['smtp_host'] = 'Enter the mail server name, for example smtp.example.com.';
-            if ($c['smtp_port'] < 1 || $c['smtp_port'] > 65535) $err['smtp_port'] = 'Enter a port between 1 and 65535.';
-            if (!in_array($c['smtp_secure'], ['tls', 'ssl', 'none'], true)) $err['smtp_secure'] = 'Choose a connection type.';
-            if ($c['smtp_user'] !== '' && $c['smtp_pass'] === '' && !$cur['has_pass']) $err['smtp_pass'] = 'Enter the password for this mail account.';
-        }
-        return [$err, $c];
-    }
-
-    static function saveMail(int $wid, int $actor, array $c): void {
-        $cur = self::mail($wid);
-        $pass = $c['smtp_pass'] !== '' ? self::seal($c['smtp_pass']) : $cur['smtp_pass_enc'];   // blank = keep the saved password
-        if ($c['smtp_user'] === '') $pass = null;
-        $vals = [$c['provider'], $c['from_name'], $c['from_email'], $c['reply_to'], $c['smtp_host'], $c['smtp_port'], $c['smtp_secure'], $c['smtp_user'], $pass];
-        if (Db::q('SELECT 1 FROM workspace_email WHERE workspace_id = ?', [$wid])->fetchColumn()) Db::q('UPDATE workspace_email SET provider=?, from_name=?, from_email=?, reply_to=?, smtp_host=?, smtp_port=?, smtp_secure=?, smtp_user=?, smtp_pass_enc=? WHERE workspace_id = ?', [...$vals, $wid]);
-        else Db::q('INSERT INTO workspace_email (provider, from_name, from_email, reply_to, smtp_host, smtp_port, smtp_secure, smtp_user, smtp_pass_enc, workspace_id) VALUES (?,?,?,?,?,?,?,?,?,?)', [...$vals, $wid]);
-        Team::audit($wid, $actor, null, 'email_settings_updated', $c['provider'] === 'smtp' ? 'Own mail server' : 'Server default');
-    }
-
-    /** Sends a test message to the signed-in person's own address. @return string '' on success, else a message the person can read */
-    static function sendTest(int $wid, array $u): string {
-        $m = self::mail($wid);
-        if ($m['test_sent_at'] && time() - strtotime($m['test_sent_at'] . ' UTC') < 30) return 'Wait a moment before sending another test email.';
-        try {
-            Mailer::send((string)$u['email'], 'Krono test email', "This is a test email from your Krono workspace.\nIf you can read it, your email settings work.", self::mailConfig($wid));
-            $ok = true; $why = '';
-        } catch (Throwable $e) { error_log((string)$e); $ok = false; $why = $e->getMessage(); }
-        if (Db::q('SELECT 1 FROM workspace_email WHERE workspace_id = ?', [$wid])->fetchColumn()) Db::q('UPDATE workspace_email SET test_sent_at = ? WHERE workspace_id = ?', [gmdate('Y-m-d H:i:s'), $wid]);
-        Db::q('INSERT INTO audit_log (workspace_id, actor_id, target_user_id, action, detail, result, created_at) VALUES (?,?,?,?,?,?,?)', [$wid, (int)$u['id'], null, 'email_test', $ok ? 'Sent to ' . $u['email'] : mb_substr($why, 0, 200), $ok ? 'success' : 'failed', gmdate('Y-m-d H:i:s')]);
-        return $ok ? '' : $why;
-    }
-
     // ---------- Audit log ----------
 
     static function auditFilters(array $q): array {
@@ -157,7 +90,6 @@ final class WsSettings {
     static function describe(array $r): array {
         $a = (string)$r['action']; $d = (string)$r['detail']; $who = (string)($r['target_name'] ?? ''); $role = fn(string $k) => Team::ROLE_LABEL[$k] ?? $k;
         $title = self::ACTIONS[$a] ?? ucfirst(str_replace('_', ' ', $a));
-        if ($a === 'email_test' && $r['result'] === 'failed') $title = 'Email test failed';
         if ($a === 'role_changed' && preg_match('/^(\w+) -> (\w+)$/', $d, $m)) $d = $who . ' · ' . $role($m[1]) . ' → ' . $role($m[2]);
         elseif ($a === 'invite_sent' && preg_match('/^(\S+) as (\w+)$/', $d, $m)) $d = $m[1] . ' · ' . $role($m[2]);
         elseif ($a === 'invite_accepted') $d = $who . ' · ' . $role($d);

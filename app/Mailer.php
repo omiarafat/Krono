@@ -1,9 +1,9 @@
 <?php
 /**
- * Outgoing e-mail. Three ways to send, chosen by MAIL_MODE in .env or by the workspace (Settings > Workspace > Email Settings):
+ * Outgoing e-mail, chosen by MAIL_MODE in .env:
  *  fixed / log : local development only; nothing leaves the computer, the message is written to storage/logs/mail.log
  *  smtp        : a real mail server (MAIL_HOST, MAIL_PORT, MAIL_SECURE=tls|ssl|none, MAIL_USER, MAIL_PASS)
- * $cfg (optional) = ['name' =>, 'email' =>, 'reply' =>, 'smtp' => [host, port, secure, user, pass] | null] from WsSettings::mailConfig().
+ * Sender name/address: MAIL_FROM_NAME, MAIL_FROM. $cfg (optional) can override name / email / reply / smtp for one message.
  */
 final class Mailer {
     static function send(string $to, string $subject, string $body, ?array $cfg = null): void {
