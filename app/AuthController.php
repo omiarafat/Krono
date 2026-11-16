@@ -4,7 +4,7 @@ final class AuthController {
     static function login(): void {
         $email = Auth::normEmail((string)($_POST['email'] ?? ''));
         $r = Auth::attempt($email, (string)($_POST['password'] ?? ''));
-        if ($r === 'ok') redirect('/dashboard');
+        if ($r === 'ok') redirect(TeamController::pendingInvite() ?? '/dashboard');
         if ($r === 'unverified') { $_SESSION['pending_email'] = $email; Auth::sendCode($email); flash('ok', 'Please verify your email to continue.'); redirect('/verify'); }
         $msg = $r === 'locked' ? 'Too many attempts. Try again in ' . Auth::WINDOW_MIN . ' minutes.' : 'Incorrect email or password.';
         render('auth/login', ['title' => 'Sign in', 'errors' => [$msg]]);
@@ -45,5 +45,5 @@ final class AuthController {
         if (!$uid) { flash('error', 'That sign-in link expired. Open the website again from the Krono Desktop app, or sign in here.'); redirect('/login'); }
         Auth::startSession($uid); redirect('/dashboard');
     }
-    static function logout(): void { $_SESSION = []; session_destroy(); redirect('/login'); }
+    static function logout(): void { Account::end(); $_SESSION = []; session_destroy(); redirect('/login'); }
 }

@@ -106,6 +106,6 @@ final class TimeLog {
     /** "Oct 20" for a UTC DATETIME, in the workspace timezone (year added when it is not this year). */
     static function dateLabel(string $utc, DateTimeZone $tz): string {
         $t = (new DateTimeImmutable($utc, new DateTimeZone('UTC')))->setTimezone($tz);
-        return $t->format($t->format('Y') === (new DateTimeImmutable('now', $tz))->format('Y') ? 'M d' : 'M d, Y');
+        return $t->format(Account::df($t->format('Y') === (new DateTimeImmutable('now', $tz))->format('Y')));
     }
 }

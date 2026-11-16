@@ -9,7 +9,7 @@
  *  - Progress %      = completed tasks / all tasks of the project (no tasks = 0%)
  *  - Saved time      = my task_time_logs (the desktop app writes them on Stop + Save)
  *  - Attendance net  = (sign out or now) - sign in - breaks, for sessions that signed in today
- * "Today / week / month" use the workspace timezone (workspaces.timezone, default Asia/Dhaka); the week starts on Monday.
+ * "Today / week / month" use the workspace timezone (workspaces.timezone, default Asia/Dhaka); the week starts on the day set in Workspace Settings (Monday by default).
  */
 final class Dashboard {
     const ACTIVE = "'planning','in_progress'";
@@ -28,10 +28,10 @@ final class Dashboard {
         $ws = Workspace::ensureFor($uid); $tz = Workspace::tz($ws);
         $now = ($now ?? new DateTimeImmutable('now', new DateTimeZone('UTC')))->setTimezone($tz);
         $today = $now->setTime(0, 0);
-        $weekStart = $today->modify('monday this week');
+        $weekStart = Workspace::weekStart($today);
         if ($week === 'last') $weekStart = $weekStart->modify('-7 days');
         $weekEnd = $weekStart->modify('+7 days');                      // exclusive
-        $realWeekStart = $today->modify('monday this week');
+        $realWeekStart = Workspace::weekStart($today);
         $monthStart = $today->modify('first day of this month');
         $nextMonth = $monthStart->modify('+1 month');
         $nowUtc = self::utc($now);

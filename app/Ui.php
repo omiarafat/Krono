@@ -23,7 +23,7 @@ final class Ui {
     }
 
     /** "Oct 22, 2026" for a Y-m-d date (no timezone shift: it is a plain calendar date). */
-    static function date(?string $ymd): string { return $ymd ? date('M d, Y', strtotime($ymd . ' 12:00:00')) : '—'; }
+    static function date(?string $ymd): string { return $ymd ? date(Account::df(), strtotime($ymd . ' 12:00:00')) : '—'; }
 
     /** "just now", "2h ago", "yesterday", else "Oct 19, 2026". $utc is a UTC DATETIME string. */
     static function ago(string $utc): string {
@@ -40,8 +40,8 @@ final class Ui {
     static function when(string $utc, DateTimeZone $tz): string {
         $t = (new DateTimeImmutable($utc, new DateTimeZone('UTC')))->setTimezone($tz); $today = (new DateTimeImmutable('now', $tz))->setTime(0, 0);
         $days = (int)$today->diff($t->setTime(0, 0))->format('%r%a');
-        $clock = $t->format('g:i A');
-        return $days === 0 ? "Today at $clock" : ($days === -1 ? "Yesterday at $clock" : $t->format('M d, Y') . ' · ' . $clock);
+        $clock = $t->format(Account::tf(false));
+        return $days === 0 ? "Today at $clock" : ($days === -1 ? "Yesterday at $clock" : $t->format(Account::df()) . ' · ' . $clock);
     }
 
     /** Due label for a task: Today / Tomorrow / "Oct 24" (year added when it is not this year). @return array{0:string,1:bool} [label, overdue] */
@@ -49,12 +49,12 @@ final class Ui {
         if (!$ymd) return ['—', false];
         $today = new DateTimeImmutable('today', $tz); $d = new DateTimeImmutable($ymd, $tz);
         $days = (int)$today->diff($d)->format('%r%a');
-        $label = $days === 0 ? 'Today' : ($days === 1 ? 'Tomorrow' : $d->format($d->format('Y') === $today->format('Y') ? 'M d' : 'M d, Y'));
+        $label = $days === 0 ? 'Today' : ($days === 1 ? 'Tomorrow' : $d->format(Account::df($d->format('Y') === $today->format('Y'))));
         return [$label, $days < 0 && !$done];
     }
 
     /** "Oct 19, 2026" for a UTC DATETIME, shown in the workspace timezone. */
-    static function day(string $utc, DateTimeZone $tz): string { return (new DateTimeImmutable($utc, new DateTimeZone('UTC')))->setTimezone($tz)->format('M d, Y'); }
+    static function day(string $utc, DateTimeZone $tz): string { return (new DateTimeImmutable($utc, new DateTimeZone('UTC')))->setTimezone($tz)->format(Account::df()); }
 
     /** Minutes as "12h", "1h 30m", "45m" (estimates). */
     static function minutes(int $m): string { $h = intdiv($m, 60); $r = $m % 60; return $h && $r ? "{$h}h {$r}m" : ($h ? "{$h}h" : "{$r}m"); }
