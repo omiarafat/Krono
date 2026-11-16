@@ -10,12 +10,12 @@ $items = [ // key => [label, icon, path]
 ];
 $tip = 'pointer-events-none absolute left-full top-1/2 z-50 ml-3 hidden -translate-y-1/2 whitespace-nowrap rounded-lg bg-ink px-2.5 py-1.5 text-tiny font-semibold text-page opacity-0 shadow-card transition-opacity collapsed:block';
 ?><!doctype html>
-<html lang="en">
+<html lang="en"<?= in_array($user['theme'] ?? '', ['light', 'dark'], true) ? ' data-theme="' . e($user['theme']) . '"' : '' ?>>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title><?= e($title ?? 'Krono') ?> · Krono</title>
-<script>try{var d=document.documentElement,t=localStorage.getItem('krono-theme');if(t==='light'||t==='dark')d.dataset.theme=t;var s=localStorage.getItem('krono-sidebar');d.dataset.sidebar=(s==='collapsed'||s==='expanded')?s:(matchMedia('(max-width:1000px)').matches?'collapsed':'expanded')}catch(e){document.documentElement.dataset.sidebar='expanded'}</script>
+<script>try{var d=document.documentElement;var s=localStorage.getItem('krono-sidebar');d.dataset.sidebar=(s==='collapsed'||s==='expanded')?s:(matchMedia('(max-width:1000px)').matches?'collapsed':'expanded')}catch(e){document.documentElement.dataset.sidebar='expanded'}</script>
 <link rel="icon" href="<?= asset('brand/Krono_Mark.svg') ?>">
 <link rel="stylesheet" href="<?= asset('css/site.css') ?>">
 </head>
@@ -43,7 +43,7 @@ $tip = 'pointer-events-none absolute left-full top-1/2 z-50 ml-3 hidden -transla
       <?php endforeach; ?>
     </nav>
     <div class="mt-auto flex items-center gap-2.25 border-t border-line px-0.75 pt-4 collapsed:justify-center">
-      <div class="user-dot"><?= e($initial) ?></div>
+      <?= Avatar::html((int)($user['id'] ?? 0), $uname !== '' ? $uname : $uemail, $user['avatar'] ?? null) ?>
       <div class="flex min-w-0 flex-1 flex-col gap-0.5 collapsed:hidden"><strong class="truncate text-xs"><?= e($uname) ?></strong><span class="truncate text-micro text-side-muted"><?= e($uemail) ?></span></div>
     </div>
   </aside>
@@ -61,7 +61,7 @@ $tip = 'pointer-events-none absolute left-full top-1/2 z-50 ml-3 hidden -transla
           <span class="mx-0.75 h-6 w-px bg-line"></span>
           <details class="relative" data-account-menu>
             <summary class="flex cursor-pointer list-none items-center gap-2.5 rounded-xl p-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand [&::-webkit-details-marker]:hidden" aria-label="Account menu">
-              <span class="user-dot"><?= e($initial) ?></span>
+              <?= Avatar::html((int)($user['id'] ?? 0), $uname !== '' ? $uname : $uemail, $user['avatar'] ?? null) ?>
               <span class="flex flex-col gap-0.5 text-tiny max-sm:hidden"><strong><?= e($uname) ?></strong><span class="text-micro text-muted">Workspace</span></span>
             </summary>
             <div class="absolute right-0 top-full mt-2 z-50 min-w-50 rounded-xl border border-line bg-surface p-1.5 shadow-card">

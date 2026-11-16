@@ -6,7 +6,7 @@ final class Auth {
     const DUMMY_HASH = '$2y$10$AeWcwo8PtvnG/0w2wncI3eRAugcO0531Pn4d/xnprVV1KE5MZSOHi';
 
     static function fixedCode(): bool { return env('APP_ENV') === 'local' && env('MAIL_MODE') === 'fixed'; }
-    private static function h(string $c): string {
+    static function h(string $c): string {
         $k = (string)env('APP_KEY', ''); if (strlen($k) < 16) throw new RuntimeException('Set APP_KEY (16+ chars) in .env');
         return hash_hmac('sha256', $c, $k);
     }
@@ -18,7 +18,15 @@ final class Auth {
         static $u = false;
         if ($u === false) {
             $u = null;
-            if (!empty($_SESSION['uid'])) $u = Db::q('SELECT id, name, email FROM users WHERE id = ? AND status = "active" AND email_verified_at IS NOT NULL', [$_SESSION['uid']])->fetch() ?: null;
+            if (!empty($_SESSION['uid'])) {
+                $where = ' FROM users WHERE id = ? AND status = "active" AND email_verified_at IS NOT NULL';
+                try { $u = Db::q('SELECT id, name, email, timezone, date_format, avatar, theme' . $where, [$_SESSION['uid']])->fetch() ?: null; }
+                catch (Throwable $e) {   // before database/migrate.php
+                    try { $u = Db::q('SELECT id, name, email, timezone, date_format' . $where, [$_SESSION['uid']])->fetch() ?: null; }
+                    catch (Throwable $e2) { $u = Db::q('SELECT id, name, email' . $where, [$_SESSION['uid']])->fetch() ?: null; }
+                }
+                if ($u && !Account::track((int)$u['id'])) { unset($_SESSION['uid']); $u = null; }   // this sign-in was signed out from Settings > Sessions
+            }
         }
         return $u;
     }
@@ -44,7 +52,7 @@ final class Auth {
         if ($r === 'ok') self::startSession((int)$u['id']);
         return $r;
     }
-    static function startSession(int $uid): void { session_regenerate_id(true); $_SESSION['uid'] = $uid; }
+    static function startSession(int $uid): void { session_regenerate_id(true); $_SESSION['uid'] = $uid; Account::begin($uid); }
 
     // ---------- registration + email verification (shared by website and app) ----------
     /** One set of rules for both clients. Returns a list of error messages (empty = valid). */

@@ -63,25 +63,28 @@
       dlg.setAttribute('data-saving', ''); submit.disabled = true; submit.textContent = 'Saving…';
     });
     if (dlg.hasAttribute('data-autoopen')) {   // the server sent the form back with errors: show it again with the values kept
-      texts(dlg, !!(form.elements.id && form.elements.id.value));
+      texts(dlg, !!(form.elements.id && form.elements.id.value)); dlg.dispatchEvent(new CustomEvent('krono:modal-open', { detail: {} }));
       dlg.showModal(); var first = $('[aria-invalid]', form) || $('input:not([type=hidden]), textarea', form); first && (first._kfocus || first).focus();
     }
   });
 
   /* buttons that open a modal. bind(root) also runs on results that live filters swap in ("krono:content") */
+  function openModal(id, fill) {
+    var dlg = document.getElementById(id), form = $('form', dlg);
+    closeMenus(); form.reset(); clearErrors(form);
+    var vals = Object.assign({}, JSON.parse(form.dataset.defaults || '{}'), fill || {});
+    Object.keys(vals).forEach(function (n) {
+      var el = form.elements[n]; if (!el) return; el.value = vals[n] == null ? '' : vals[n];
+      if (el.hasAttribute('data-dependent')) el.dispatchEvent(new Event('change'));
+    });
+    dueMin(form); sync(form); texts(dlg, !!fill, fill);
+    dlg.dispatchEvent(new CustomEvent('krono:modal-open', { detail: fill || {} }));
+    dlg.showModal(); dlg._snap = ser(form); var f = $('input:not([type=hidden]), textarea', form); f && f.focus();
+  }
+  window.KronoModals = { open: openModal };
   function bindOpen(root) {
     all('[data-modal-open]', root).forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        var dlg = document.getElementById(btn.dataset.modalOpen), form = $('form', dlg), fill = btn.dataset.fill ? JSON.parse(btn.dataset.fill) : null;
-        closeMenus(); form.reset(); clearErrors(form);
-        var vals = Object.assign({}, JSON.parse(form.dataset.defaults || '{}'), fill || {});
-        Object.keys(vals).forEach(function (n) {
-          var el = form.elements[n]; if (!el) return; el.value = vals[n] == null ? '' : vals[n];
-          if (el.hasAttribute('data-dependent')) el.dispatchEvent(new Event('change'));
-        });
-        dueMin(form); sync(form); texts(dlg, !!fill, fill);
-        dlg.showModal(); dlg._snap = ser(form); var f = $('input:not([type=hidden]), textarea', form); f && f.focus();
-      });
+      btn.addEventListener('click', function () { openModal(btn.dataset.modalOpen, btn.dataset.fill ? JSON.parse(btn.dataset.fill) : null); });
     });
   }
 
