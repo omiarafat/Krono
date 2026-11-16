@@ -3,13 +3,21 @@
                            Leaving by a page link while changed asks "Leave without saving?" (#leave-modal).
    data-required="a,b"   : fields that must be filled (inline "This field is required.").
    input[data-orig]      : e-mail field; while it differs from the saved address the [data-email-pw] row (current password) shows.
-   [data-open=id] / [data-close] open and close a plain <dialog>. */
+   [data-open=id] / [data-close] open and close a plain <dialog>.
+   input[data-photo-input]: choosing a photo uploads it at once (a photo over 2 MB is refused here, with a message, before it is sent). */
 (function () {
   'use strict';
   var $ = function (s, r) { return (r || document).querySelector(s); }, all = function (s, r) { return [].slice.call((r || document).querySelectorAll(s)); };
 
   all('[data-open]').forEach(function (b) { b.addEventListener('click', function () { var d = document.getElementById(b.dataset.open); d && d.showModal(); }); });
   all('dialog [data-close]').forEach(function (b) { b.addEventListener('click', function () { b.closest('dialog').close(); }); });
+
+  var photo = $('[data-photo-input]');
+  if (photo) photo.addEventListener('change', function () {
+    var f = photo.files[0], msg = $('[data-photo-error]'); if (!f) return;
+    if (f.size > 2 * 1024 * 1024) { msg.textContent = 'That photo is larger than 2 MB. Choose a smaller one.'; msg.classList.remove('hidden'); photo.value = ''; return; }
+    msg.classList.add('hidden'); photo.form.submit();
+  });
 
   var form = $('form[data-guard]'); if (!form) return;
   var saves = all('[data-save]'), req = (form.dataset.required || '').split(',').filter(Boolean), saving = false;

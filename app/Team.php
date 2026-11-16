@@ -187,7 +187,7 @@ final class Team {
     /** Sends the invitation e-mail. Throws when the mail could not be accepted for delivery. */
     private static function mail(array $ws, string $inviter, string $email, string $role, string $token): void {
         $link = url('/invite?token=' . $token);
-        Mailer::send($email, 'You are invited to ' . $ws['name'] . ' on Krono', "$inviter invited you to join the workspace \"{$ws['name']}\" on Krono as " . strtolower(self::ROLE_LABEL[$role]) . ".\nAccept the invitation: $link\nThis link works for " . self::INVITE_DAYS . ' days and only for ' . $email . '.', WsSettings::mailConfig((int)$ws['id']));
+        Mailer::send($email, 'You are invited to ' . $ws['name'] . ' on Krono', "$inviter invited you to join the workspace \"{$ws['name']}\" on Krono as " . strtolower(self::ROLE_LABEL[$role]) . ".\nAccept the invitation: $link\nThis link works for " . self::INVITE_DAYS . ' days and only for ' . $email . '.');
     }
 
     static function invite(array $ws, array $actor, string $email, string $role, int $managerId): array {
