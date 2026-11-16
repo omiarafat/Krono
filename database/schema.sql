@@ -304,19 +304,3 @@ CREATE TABLE IF NOT EXISTS email_changes (
   KEY idx_email_changes_user (user_id, id),
   CONSTRAINT fk_email_changes_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-CREATE TABLE IF NOT EXISTS workspace_email (
-  workspace_id BIGINT UNSIGNED NOT NULL PRIMARY KEY,
-  provider VARCHAR(8) NOT NULL DEFAULT 'default',
-  from_name VARCHAR(100) NOT NULL DEFAULT '',
-  from_email VARCHAR(190) NOT NULL DEFAULT '',
-  reply_to VARCHAR(190) NOT NULL DEFAULT '',
-  smtp_host VARCHAR(190) NOT NULL DEFAULT '',
-  smtp_port SMALLINT UNSIGNED NOT NULL DEFAULT 587,
-  smtp_secure VARCHAR(8) NOT NULL DEFAULT 'tls',
-  smtp_user VARCHAR(190) NOT NULL DEFAULT '',
-  smtp_pass_enc TEXT NULL,
-  test_sent_at DATETIME NULL,
-  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  CONSTRAINT fk_wemail_ws FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

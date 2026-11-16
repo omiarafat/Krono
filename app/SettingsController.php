@@ -14,8 +14,6 @@ final class SettingsController {
         'Workspace Settings' => [
             'general' => ['General', 'building', 'admin', '/settings/workspace/general', 'Workspace Settings', 'Workspace identity and default preferences'],
             'roles' => ['Roles & Permissions', 'shield', 'admin', '/settings/workspace/roles', 'Workspace Settings', 'Built-in roles and what each one can see and do'],
-            'access' => ['Security & Access', 'key', 'admin', '/settings/workspace/access', 'Workspace Settings', 'Review access boundaries and security requirements'],
-            'email' => ['Email Settings', 'mail', 'owner', '/settings/workspace/email', 'Workspace Settings', 'Configure invitation and system email delivery'],
             'audit' => ['Audit Log', 'history', 'admin', '/settings/workspace/audit', 'Workspace Settings', 'Review important workspace changes'],
         ],
     ];
@@ -49,7 +47,6 @@ final class SettingsController {
         if ($key === 'appearance') $d['prefs'] = Account::prefs($uid);
         if ($key === 'general') { $d['g'] = WsSettings::general((int)$ws['id']); $d['zones'] = Account::timezones(); }
         if ($key === 'roles') $d['counts'] = WsSettings::roleCounts((int)$ws['id']);
-        if ($key === 'email') { $d['m'] = WsSettings::mail((int)$ws['id']); $d['serverMail'] = WsSettings::serverMail(); }
         if ($status !== 200) http_response_code($status);
         render('settings/' . ($e[2] === 'admin' || $e[2] === 'owner' ? 'workspace/' : '') . $key, $extra + $d, 'app');
     }
@@ -125,8 +122,6 @@ final class SettingsController {
 
     static function general(): void { [$u] = self::open('general'); self::page('general', $u); }
     static function roles(): void { [$u] = self::open('roles'); self::page('roles', $u); }
-    static function access(): void { [$u] = self::open('access'); self::page('access', $u); }
-    static function email(): void { [$u] = self::open('email'); self::page('email', $u); }
 
     static function saveGeneral(): void {
         [$u] = self::open('general'); $wid = (int)Workspace::ensureFor((int)$u['id'])['id'];
@@ -135,20 +130,6 @@ final class SettingsController {
         try { WsSettings::saveGeneral($wid, (int)$u['id'], $clean); }
         catch (Throwable $e) { error_log((string)$e); self::page('general', $u, ['errors' => ['_' => 'Your changes were not saved. Check your connection and try again. Your input has been kept.'], 'form' => $clean], 500); return; }
         flash('ok', 'Workspace defaults were saved. Saved records and timestamps are not changed.', 'Workspace updated'); self::go('general');
-    }
-
-    static function saveEmail(): void {
-        [$u] = self::open('email'); $wid = (int)Workspace::ensureFor((int)$u['id'])['id'];
-        [$err, $clean] = WsSettings::checkMail($_POST, WsSettings::mail($wid));
-        if ($err) { unset($clean['smtp_pass']); self::page('email', $u, ['errors' => $err, 'form' => $clean], 422); return; }
-        try { WsSettings::saveMail($wid, (int)$u['id'], $clean); }
-        catch (Throwable $e) { error_log((string)$e); unset($clean['smtp_pass']); self::page('email', $u, ['errors' => ['_' => 'Your changes were not saved. Check your connection and try again. Your input has been kept.'], 'form' => $clean], 500); return; }
-        flash('ok', 'Email settings were saved.', 'Email settings saved'); self::go('email');
-    }
-
-    static function testEmail(): void {
-        [$u] = self::open('email'); $err = WsSettings::sendTest((int)Workspace::ensureFor((int)$u['id'])['id'], $u);
-        $err === '' ? flash('ok', 'A test email was sent to ' . $u['email'] . '.', 'Test email sent') : flash('error', $err, 'Test email failed'); self::go('email');
     }
 
     static function audit(): void {
