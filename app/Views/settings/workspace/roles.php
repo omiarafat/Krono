@@ -30,7 +30,7 @@ $groups = [['Projects & Tasks', 'projects', 'Create, edit and assign projects an
   <section class="panel-card p-5.5 max-sm:p-4" aria-labelledby="pg-title">
     <h2 class="m-0 text-base" id="pg-title">What each area covers</h2>
     <p class="mt-1 mb-4.5 text-xs text-muted">Access is decided by role. The data a person can see is always limited to their own scope.</p>
-    <div class="grid grid-cols-2 gap-3 max-sm:grid-cols-1">
+    <div class="grid md:grid-cols-2 xl:grid-cols-4 gap-3 max-sm:grid-cols-1">
       <?php foreach ($groups as [$t, $ic, $text]): ?>
         <div class="flex items-center gap-3 rounded-card border border-line p-3.5"><span class="flex h-9.5 w-9.5 shrink-0 items-center justify-center rounded-xl bg-soft text-brand"><?= icon($ic, 18) ?></span><div class="min-w-0"><div class="text-tiny font-bold"><?= e($t) ?></div><div class="text-micro leading-copy text-muted"><?= e($text) ?></div></div></div>
       <?php endforeach; ?>

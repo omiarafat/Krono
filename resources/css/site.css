@@ -11,6 +11,8 @@
 
 /* Sidebar is in icon mode (set on <html data-sidebar="collapsed">): use as  collapsed:hidden  */
 @custom-variant collapsed (:where([data-sidebar="collapsed"]) &);
+/* Settings left menu is in icon mode (<html data-settings-menu="collapsed">): use as  menu-collapsed:hidden  */
+@custom-variant menu-collapsed (:where([data-settings-menu="collapsed"]) &);
 
 /* Fixed design values from the mockups (same in Light and Dark). Rule: no [..] values in markup, add a token here instead. */
 /* Status / Priority badge colors only (approved exception). "static" = always written to the CSS, even if no utility class uses them. Always shown with a text label. */
