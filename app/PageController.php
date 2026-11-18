@@ -8,6 +8,7 @@ final class PageController {
     static function soon(string $path): void {
         $u = Auth::user(); if (!$u) redirect('/login');
         [$key, $label, $icon] = self::SOON[$path];
+        if ($key === 'reports') Perm::gate(Workspace::ensureFor((int)$u['id']), 'reports.view', $u, 'reports', 'Reports');
         render('pages/soon', ['title' => $label, 'user' => $u, 'nav' => $key, 'crumb' => $label, 'label' => $label, 'icon' => $icon], 'app');
     }
 }

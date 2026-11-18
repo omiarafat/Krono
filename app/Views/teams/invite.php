@@ -8,7 +8,7 @@ $ghost = 'inline-flex h-10.5 w-full cursor-pointer items-center justify-center r
     <h1>Invitation not available</h1>
     <p class="text-muted">This link is not valid any more. It may have expired, been cancelled or already been used. Ask the person who invited you to send a new one.</p>
     <a class="<?= $btn ?> mt-4.5" href="<?= url('/login') ?>">Go to login</a>
-  <?php else: $role = strtolower(Team::ROLE_LABEL[$inv['role']]); ?>
+  <?php else: $role = strtolower(Perm::label($inv['role'], $inv['custom_role_id'] ?? null, !empty($inv['custom_role_id']) ? (Perm::custom((int)$inv['workspace_id'], (int)$inv['custom_role_id'])['name'] ?? null) : null)); ?>
     <h1>Join <?= e($inv['workspace']) ?></h1>
     <p class="text-muted"><?= e($inv['inviter'] ?: 'An admin') ?> invited <strong><?= e($inv['email']) ?></strong> to join as <?= e($role) ?>.</p>
     <?= flash_html() ?>

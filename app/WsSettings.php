@@ -7,7 +7,7 @@ final class WsSettings {
         'invite_sent' => 'Member invited', 'invite_cancelled' => 'Invitation cancelled', 'invite_resent' => 'Invitation resent', 'invite_accepted' => 'Invitation accepted',
         'role_changed' => 'Role updated', 'manager_changed' => 'Reports-to changed', 'reactivated' => 'Member reactivated', 'deactivated' => 'Member deactivated',
         'email_change_requested' => 'Email change requested', 'email_changed' => 'Email changed', 'password_changed' => 'Password changed',
-        'workspace_updated' => 'Workspace settings updated',
+        'workspace_updated' => 'Workspace settings updated', 'role_created' => 'Role created', 'role_updated' => 'Role updated', 'role_deleted' => 'Role deleted',
     ];
 
     // ---------- General ----------
@@ -49,7 +49,7 @@ final class WsSettings {
     /** role => number of active members */
     static function roleCounts(int $wid): array {
         $o = array_fill_keys(array_keys(Team::ROLE_LABEL), 0);
-        foreach (Db::q("SELECT role, COUNT(*) n FROM workspace_members WHERE workspace_id = ? AND status = 'active' GROUP BY role", [$wid])->fetchAll() as $r) $o[$r['role']] = (int)$r['n'];
+        foreach (Db::q("SELECT role, COUNT(*) n FROM workspace_members WHERE workspace_id = ? AND status = 'active' AND custom_role_id IS NULL GROUP BY role", [$wid])->fetchAll() as $r) $o[$r['role']] = (int)$r['n'];
         return $o;
     }
 
@@ -90,8 +90,8 @@ final class WsSettings {
     static function describe(array $r): array {
         $a = (string)$r['action']; $d = (string)$r['detail']; $who = (string)($r['target_name'] ?? ''); $role = fn(string $k) => Team::ROLE_LABEL[$k] ?? $k;
         $title = self::ACTIONS[$a] ?? ucfirst(str_replace('_', ' ', $a));
-        if ($a === 'role_changed' && preg_match('/^(\w+) -> (\w+)$/', $d, $m)) $d = $who . ' · ' . $role($m[1]) . ' → ' . $role($m[2]);
-        elseif ($a === 'invite_sent' && preg_match('/^(\S+) as (\w+)$/', $d, $m)) $d = $m[1] . ' · ' . $role($m[2]);
+        if ($a === 'role_changed' && preg_match('/^(.+) -> (.+)$/', $d, $m)) $d = $who . ' · ' . $role($m[1]) . ' → ' . $role($m[2]);
+        elseif ($a === 'invite_sent' && preg_match('/^(\S+) as (.+)$/', $d, $m)) $d = $m[1] . ' · ' . $role($m[2]);
         elseif ($a === 'invite_accepted') $d = $who . ' · ' . $role($d);
         elseif (in_array($a, ['manager_changed', 'reactivated', 'deactivated'], true)) $d = $who;
         elseif (in_array($a, ['email_change_requested', 'email_changed', 'password_changed'], true)) $d = $who;

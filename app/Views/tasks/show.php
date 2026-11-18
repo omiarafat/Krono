@@ -23,12 +23,12 @@ $tabs = ['overview' => 'Overview', 'logs' => 'Time Logs', 'activity' => 'Activit
     <?php if ($canEdit): ?>
     <div class="flex shrink-0 items-center gap-2.5">
       <button type="button" class="btn" data-modal-open="task-modal" data-fill="<?= e(json_encode($editFill)) ?>"><?= icon('settings', 16) ?> Edit Task</button>
-      <details class="relative" data-menu>
+      <?php if ($canDelete): ?><details class="relative" data-menu>
         <summary class="btn list-none px-3.5 [&::-webkit-details-marker]:hidden" aria-label="More task actions"><?= icon('more', 18) ?></summary>
         <div class="absolute top-full right-0 z-20 mt-1 w-48 rounded-xl border border-line bg-surface p-1.5 shadow-modal">
           <button type="button" class="menu-item text-danger" data-task-delete="<?= $id ?>" data-name="<?= e($t['title']) ?>" data-logs="<?= (int)($info['logs']['total'] ?? 0) ?>" data-time="<?= e(fmt_hm($logged)) ?>" data-href="<?= e($self(['tab' => 'logs'])) ?>">Delete task</button>
         </div>
-      </details>
+      </details><?php endif; ?>
     </div>
     <?php endif; ?>
   </div>
@@ -184,7 +184,7 @@ $tabs = ['overview' => 'Overview', 'logs' => 'Time Logs', 'activity' => 'Activit
 if ($canEdit && !$failed) {
     $taskProjects = [$pid => ['name' => $t['project_name'], 'tasks' => (int)$info['counts']['all'], 'people' => $info['people']]]; $taskFixed = $pid;
     include __DIR__ . '/_modal.php'; include __DIR__ . '/_details-modal.php'; include ROOT . '/app/Views/projects/_discard.php';
-    $back = '/project?id=' . $pid; include __DIR__ . '/_delete.php';   // after deleting, return to the project
+    $back = '/project?id=' . $pid; if ($canDelete) include __DIR__ . '/_delete.php';   // after deleting, return to the project
 }
 include ROOT . '/app/Views/partials/toast.php';
 ?>

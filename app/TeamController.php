@@ -11,7 +11,7 @@ final class TeamController {
 
     private static function page(array $u, array $ws, array $f, ?array $inviteForm = null): void {
         $uid = (int)$u['id'];
-        if (!Team::canView($ws)) { http_response_code(403); render('teams/restricted', ['title' => 'Teams', 'user' => $u, 'nav' => 'team', 'crumb' => 'Teams', 'ws' => $ws], 'app'); return; }
+        Perm::gate($ws, 'team.view', $u, 'team', 'Teams');
         $roster = []; $failed = false;
         try { $roster = Team::roster($ws, $uid); } catch (Throwable $e) { error_log((string)$e); $failed = true; }
         $manage = Team::canManage($ws);
@@ -26,7 +26,7 @@ final class TeamController {
 
     static function invite(): void {
         [$u, $ws] = self::who(); $back = self::back();
-        if (!Team::canManage($ws)) { flash('error', 'You do not have permission to do that.', 'Not allowed'); redirect($back); }
+        if (!Perm::can($ws, 'team.invite')) { flash('error', 'You do not have permission to do that.', 'Not allowed'); redirect($back); }
         $v = ['email' => mb_strtolower(trim((string)($_POST['email'] ?? ''))), 'role' => (string)($_POST['role'] ?? 'member'), 'manager_id' => (int)($_POST['manager_id'] ?? 0)];
         try { [$errors, $mailFailed] = Team::invite($ws, $u, $v['email'], $v['role'], $v['manager_id']); }
         catch (Throwable $e) { error_log((string)$e); $errors = []; $mailFailed = false; $dbFail = true; }
@@ -44,7 +44,7 @@ final class TeamController {
     static function role(): void {
         [$u, $ws] = self::who(); $t = (int)($_POST['user_id'] ?? 0); $role = (string)($_POST['role'] ?? '');
         $err = Team::setRole($ws, (int)$u['id'], $t, $role, (string)($_POST['reports'] ?? ''));
-        self::result($err, self::nameOf($t) . ' is now ' . strtolower(Team::ROLE_LABEL[$role] ?? $role) . '.', 'Role updated', 'Could not change the role');
+        self::result($err, self::nameOf($t) . ' is now ' . (Team::assignableRoles($ws)[$role] ?? $role) . '.', 'Role updated', 'Could not change the role');
     }
 
     static function manager(): void {

@@ -2,7 +2,7 @@
    Rule: use Tailwind classes in the HTML first. Only a pattern that repeats gets a name here. */
 .panel-card { @apply rounded-panel border border-line bg-surface shadow-card; }
 
-.icon-button { @apply inline-flex h-7.5 w-6 shrink-0 cursor-pointer items-center justify-center rounded-full border border-line bg-surface p-0 text-muted hover:text-brand focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand; }
+.icon-button { @apply inline-flex h-8.5 w-8.5 shrink-0 cursor-pointer items-center justify-center rounded-control border border-line bg-surface p-0 text-muted hover:text-brand focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand; }
 
 
 .menu-item { @apply block w-full cursor-pointer rounded-lg border-0 bg-transparent px-3 py-2.5 text-left text-xs font-semibold text-ink hover:bg-raised; }

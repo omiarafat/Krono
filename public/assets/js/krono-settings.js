@@ -26,6 +26,39 @@
     msg.classList.add('hidden'); photo.form.submit();
   });
 
+  /* Roles list: search box, delete dialog. */
+  var rs = $('[data-role-search]');
+  if (rs) rs.addEventListener('input', function () {
+    var q = rs.value.trim().toLowerCase(), n = 0;
+    all('[data-role-row]').forEach(function (r) { var on = !q || r.dataset.search.indexOf(q) > -1; r.hidden = !on; if (on) n++; });
+    $('[data-role-none]').classList.toggle('hidden', n > 0);
+  });
+  all('[data-role-delete]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var d = $('#delete-role-modal'), m = +b.dataset.members, i = +b.dataset.invites, used = m + i > 0, parts = [];
+      d.querySelector('input[name=id]').value = b.dataset.roleDelete; $('[data-dr-name]', d).textContent = '“' + b.dataset.name + '”';
+      if (m) parts.push(m + ' member' + (m === 1 ? '' : 's')); if (i) parts.push(i + ' pending invitation' + (i === 1 ? '' : 's'));
+      $('[data-dr-count]', d).textContent = parts.join(' and ');
+      $('[data-dr-free]', d).classList.toggle('hidden', used); $('[data-dr-used]', d).classList.toggle('hidden', !used); $('[data-dr-go]', d).hidden = used;
+      d.showModal();
+    });
+  });
+  /* Role form: a permission that needs another one turns it on; turning that one off turns the dependants off; live "x of N on". */
+  var perms = all('input[data-perm]');
+  if (perms.length) {
+    var byKey = {}; perms.forEach(function (p) { byKey[p.dataset.perm] = p; });
+    var count = function () { var n = perms.filter(function (p) { return p.checked; }).length, c = $('[data-perm-count]'); if (c) c.textContent = n; };
+    var off = function (key) { perms.forEach(function (p) { if (p.dataset.needs === key && p.checked && !p.disabled) { p.checked = false; off(p.dataset.perm); } }); };
+    perms.forEach(function (p) {
+      p.addEventListener('change', function () {
+        if (p.checked) { var n = p.dataset.needs; while (n && byKey[n]) { if (!byKey[n].disabled) byKey[n].checked = true; n = byKey[n].dataset.needs; } }
+        else off(p.dataset.perm);
+        count();
+      });
+    });
+    count();
+  }
+
   var form = $('form[data-guard]'); if (!form) return;
   var saves = all('[data-save]'), req = (form.dataset.required || '').split(',').filter(Boolean), saving = false;
   var ser = function () { return new URLSearchParams(new FormData(form)).toString(); }, snap = ser();
@@ -40,7 +73,7 @@
     var d = dirty(); saves.forEach(function (b) { b.disabled = !d; });
   }
   form.addEventListener('input', refresh); form.addEventListener('change', refresh);
-  if (ser() !== snap || $('[aria-invalid]', form)) { snap = ''; }   // the server sent the form back with errors: keep Save available
+  if (ser() !== snap || $('[aria-invalid]', form) || form.hasAttribute('data-new')) { snap = ''; }   // the server sent the form back with errors: keep Save available
   refresh();
 
   function mark(el, msg) {

@@ -13,7 +13,17 @@ final class Task {
     const PER_PAGE = 10;    // rows on the Tasks page
 
     static function canAdd(array $ws, array $project, int $uid): bool {
-        return Project::canManage($ws) || (int)$project['leader_id'] === $uid || (int)$project['created_by'] === $uid;
+        return Perm::can($ws, 'tasks.edit') || (int)$project['leader_id'] === $uid || (int)$project['created_by'] === $uid;
+    }
+
+    /** Assign to someone else: tasks.assign, or the project's leader / creator. */
+    static function canAssign(array $ws, array $project, int $uid): bool {
+        return Perm::can($ws, 'tasks.assign') || (int)$project['leader_id'] === $uid || (int)$project['created_by'] === $uid;
+    }
+
+    /** Delete: tasks.delete, or the project's leader / creator. */
+    static function canDelete(array $ws, array $project, int $uid): bool {
+        return Perm::can($ws, 'tasks.delete') || (int)$project['leader_id'] === $uid || (int)$project['created_by'] === $uid;
     }
 
     /** True while the task's timer runs in the desktop app. The server stores no running timer yet (it arrives with the Time Tracking stage), so this is always false for now. */
@@ -81,7 +91,7 @@ final class Task {
     /** Projects the person may add tasks to, with their task count and the people who can be assigned: id => [name, tasks, people[id => name]]. */
     static function addable(int $uid, array $ws): array {
         [$vis, $v] = Project::visible($uid, $ws); $where = "$vis AND p.archived_at IS NULL";
-        if (!Project::canManage($ws)) { $where .= ' AND (p.leader_id = ? OR p.created_by = ?)'; array_push($v, $uid, $uid); }
+        if (!Perm::can($ws, 'tasks.edit')) { $where .= ' AND (p.leader_id = ? OR p.created_by = ?)'; array_push($v, $uid, $uid); }
         $out = [];
         foreach (Db::q("SELECT p.id, p.name, (SELECT COUNT(*) FROM tasks t WHERE t.project_id = p.id) tasks FROM projects p WHERE $where ORDER BY p.name, p.id", $v)->fetchAll() as $r)
             $out[(int)$r['id']] = ['name' => $r['name'], 'tasks' => (int)$r['tasks'], 'people' => Project::people((int)$r['id'])];
@@ -103,7 +113,7 @@ final class Task {
                 (SELECT COALESCE(SUM(l.duration_seconds), 0) FROM task_time_logs l WHERE l.task_id = t.id) logged
               $from LEFT JOIN users u ON u.id = t.assignee_id WHERE $where
               ORDER BY (t.status = 'completed') ASC, (t.due_date IS NULL) ASC, t.due_date ASC, t.id DESC LIMIT " . self::PER_PAGE . ' OFFSET ' . (($page - 1) * self::PER_PAGE), $args)->fetchAll();
-        foreach ($rows as &$r) $r['can_edit'] = self::canAdd($ws, $r, $uid);
+        foreach ($rows as &$r) { $r['can_edit'] = self::canAdd($ws, $r, $uid); $r['can_delete'] = self::canDelete($ws, $r, $uid); }
         return ['items' => $rows, 'total' => $total, 'projects' => (int)$c['pr'], 'pages' => $pages, 'page' => $page];
     }
 

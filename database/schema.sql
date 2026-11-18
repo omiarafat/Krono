@@ -304,3 +304,20 @@ CREATE TABLE IF NOT EXISTS email_changes (
   KEY idx_email_changes_user (user_id, id),
   CONSTRAINT fk_email_changes_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Custom roles (Settings > Workspace > Roles & Permissions). A custom role = a data scope (own / team / all) + a list of permission keys (JSON).
+-- The built-in roles (owner, admin, manager, member, viewer) are not stored here; they are fixed in app/Perm.php.
+CREATE TABLE IF NOT EXISTS workspace_roles (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  workspace_id BIGINT UNSIGNED NOT NULL,
+  name VARCHAR(40) NOT NULL,
+  description VARCHAR(120) NOT NULL DEFAULT '',
+  scope ENUM('own','team','all') NOT NULL DEFAULT 'own',
+  permissions TEXT NOT NULL,
+  created_by BIGINT UNSIGNED NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_wr_name (workspace_id, name),
+  CONSTRAINT fk_wr_ws FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+

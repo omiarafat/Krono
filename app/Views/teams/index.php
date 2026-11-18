@@ -59,35 +59,13 @@ $tabs = ['members' => ['Members', 'team', $c['total']], 'structure' => ['Reporti
         <div class="flex flex-wrap items-start justify-between gap-3">
           <div><h2>Workspace members</h2><p class="mt-1 mb-0 text-tiny text-muted"><?= $manage ? 'Manage access, roles and manager assignments.' : 'You and the people who report directly to you.' ?></p></div>
         </div>
-        <form method="get" action="<?= url('/teams') ?>" class="mt-4 flex flex-wrap justify-between items-center gap-2.5" id="team-filters" role="search" data-live data-live-target="team-results">
-          <div class="flex h-10 min-w-48 max-w-75 w-full flex-1 items-center gap-2 rounded-control border border-line bg-surface px-3 text-muted focus-within:outline-2 focus-within:outline-offset-1 focus-within:outline-brand">
+        <form method="get" action="<?= url('/teams') ?>" class="mt-4 flex flex-wrap items-center gap-2.5" id="team-filters" role="search" data-live data-live-target="team-results">
+          <div class="flex h-10 min-w-48 flex-1 items-center gap-2 rounded-control border border-line bg-surface px-3 text-muted focus-within:outline-2 focus-within:outline-offset-1 focus-within:outline-brand">
             <?= icon('search', 16) ?><input type="search" name="q" value="<?= e($f['q']) ?>" placeholder="Search name or email…" aria-label="Search name or email" maxlength="100" class="h-full min-w-0 flex-1 border-0 bg-transparent p-0 text-xs text-ink outline-none placeholder:text-muted">
           </div>
-
-          <div class="flex gap-2.5">
-            <select name="role" aria-label="Role" data-kauto class="<?= $select ?>">
-              <option value="">All roles</option>
-              <?php foreach (Team::ROLE_LABEL as $k => $l): ?>
-                <option value="<?= $k ?>"<?= $f['role'] === $k ? ' selected' : '' ?>><?= e($l) ?></option>
-              <?php endforeach; ?>
-            </select>
-
-            <select name="status" aria-label="Status" data-kauto class="<?= $select ?>">
-              <option value="">All statuses</option>
-              <?php foreach (['active' => 'Active', 'invited' => 'Invited', 'deactivated' => 'Deactivated'] as $k => $l): ?>
-                <option value="<?= $k ?>"<?= $f['status'] === $k ? ' selected' : '' ?>><?= e($l) ?></option>
-              <?php endforeach; ?>
-            </select>
-            <?php if ($manage): ?>
-              <select name="manager" aria-label="Manager" data-kauto class="<?= $select ?>">
-                <option value="">All managers</option>
-                <option value="none"<?= $f['manager'] === 'none' ? ' selected' : '' ?>>No manager</option>
-                <?php foreach ($managers as $id => $n): ?>
-                  <option value="<?= (int)$id ?>"<?= $f['manager'] === (string)$id ? ' selected' : '' ?>><?= e($n) ?></option>
-                <?php endforeach; ?>
-              </select>
-            <?php endif; ?>
-          </div>
+          <select name="role" aria-label="Role" data-kauto class="<?= $select ?>"><option value="">All roles</option><?php foreach (Team::filterRoles($ws) as $k => $l): ?><option value="<?= e((string)$k) ?>"<?= $f['role'] === $k ? ' selected' : '' ?>><?= e($l) ?></option><?php endforeach; ?></select>
+          <select name="status" aria-label="Status" data-kauto class="<?= $select ?>"><option value="">All statuses</option><?php foreach (['active' => 'Active', 'invited' => 'Invited', 'deactivated' => 'Deactivated'] as $k => $l): ?><option value="<?= $k ?>"<?= $f['status'] === $k ? ' selected' : '' ?>><?= e($l) ?></option><?php endforeach; ?></select>
+          <?php if ($manage): ?><select name="manager" aria-label="Manager" data-kauto class="<?= $select ?>"><option value="">All managers</option><option value="none"<?= $f['manager'] === 'none' ? ' selected' : '' ?>>No manager</option><?php foreach ($managers as $id => $n): ?><option value="<?= (int)$id ?>"<?= $f['manager'] === (string)$id ? ' selected' : '' ?>><?= e($n) ?></option><?php endforeach; ?></select><?php endif; ?>
         </form>
         <div id="team-results" data-live-area><?php include __DIR__ . '/_members.php'; ?></div>
       </div>
