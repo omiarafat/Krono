@@ -27,7 +27,7 @@ final class TaskController {
             'projects' => $projects, 'addable' => $addable, 'failed' => $failed, 'taskForm' => $form, 'back' => Task::path($f)], 'app');
     }
 
-    static function index(): void { [$u, $ws] = self::who(); self::page($u, $ws, Task::cleanFilters($_GET)); }
+    static function index(): void { [$u, $ws] = self::who(); Perm::gate($ws, 'tasks.view', $u, 'tasks', 'Tasks'); self::page($u, $ws, Task::cleanFilters($_GET)); }
 
     /** Shows the page a form came from again, with the form (and its errors) reopened. */
     private static function rerender(array $u, array $ws, array $ctx, array $form): void {
@@ -54,6 +54,7 @@ final class TaskController {
         if ($p['archived_at'] || !Task::canAdd($ws, $p, $uid)) self::denied($back);
         $pid = (int)$p['id'];
         [$v, $err] = Task::validate($_POST, array_keys(Project::people($pid)));
+        if (!isset($err['assignee_id']) && (int)$v['assignee_id'] !== ($old ? (int)$old['assignee_id'] : 0) && (int)$v['assignee_id'] !== $uid && !Task::canAssign($ws, $p, $uid)) $err['assignee_id'] = 'You are not allowed to assign tasks to other people.';
         if ($old && $v['status'] !== $old['status'] && Task::timerActive($id)) $err['status'] = "Status can't be changed while this task's timer is active.";
         $fail = function (array $extra) use ($u, $ws, $ctx, $id, $pid, $v, $err) {
             self::rerender($u, $ws, $ctx, ['id' => $id, 'values' => $v + ['project_id' => $pid], 'errors' => $err] + $extra);
@@ -91,7 +92,7 @@ final class TaskController {
     static function delete(): void {
         [$u, $ws] = self::who(); $uid = (int)$u['id']; [$back] = self::back();
         $t = Task::find((int)($_POST['id'] ?? 0), $uid, $ws);
-        if (!$t || $t['project_archived'] || !Task::canAdd($ws, $t, $uid)) self::denied($back);
+        if (!$t || $t['project_archived'] || !Task::canDelete($ws, Task::projectOf($t), $uid)) self::denied($back);
         if (Task::logs((int)$t['id'])[0] > 0) self::denied($back, 'This task has saved time logs, so it cannot be deleted. Saved history is never removed.', 'Task kept');
         try { Task::delete($t); Activity::log((int)$ws['id'], (int)$t['project_id'], $uid, 'task_deleted', $t['title']); }
         catch (Throwable $e) { error_log((string)$e); flash('error', 'Your changes were not saved. Check your connection and try again.', 'Could not delete task'); redirect($back); }
@@ -117,13 +118,13 @@ final class TaskController {
                 'feed' => $tab === 'activity' ? Activity::taskFeed($t, max(1, (int)($_GET['apage'] ?? 1)), 10) : null];
         } catch (Throwable $e) { error_log((string)$e); $failed = true; }
         render('tasks/show', ['title' => $t['title'], 'user' => $u, 'nav' => 'tasks', 'crumb' => 'Projects', 'crumb2' => $t['project_name'], 'crumb2url' => url('/project?id=' . (int)$t['project_id']), 'crumb3' => $t['title'],
-            'ws' => $ws, 't' => $t, 'tz' => $tz, 'tab' => $tab, 'canEdit' => $manage, 'failed' => $failed, 'info' => $data, 'taskForm' => $form && ($form['kind'] ?? '') !== 'details' ? $form : null,
+            'ws' => $ws, 't' => $t, 'tz' => $tz, 'tab' => $tab, 'canEdit' => $manage, 'canDelete' => $manage && Task::canDelete($ws, Task::projectOf($t), $uid), 'failed' => $failed, 'info' => $data, 'taskForm' => $form && ($form['kind'] ?? '') !== 'details' ? $form : null,
             'detailForm' => $form && ($form['kind'] ?? '') === 'details' ? $form : null, 'back' => '/task?id=' . (int)$t['id'] . ($tab === 'overview' ? '' : '&tab=' . $tab)], 'app');
     }
 
     /** Task Details. Unknown id, another workspace and "no access" all give the same not-found page. */
     static function show(): void {
-        [$u, $ws] = self::who();
+        [$u, $ws] = self::who(); Perm::gate($ws, 'tasks.view', $u, 'tasks', 'Tasks');
         $t = Task::full((int)($_GET['id'] ?? 0), (int)$u['id'], $ws);
         if (!$t) { http_response_code(404); render('tasks/not-found', ['title' => 'Task not found', 'user' => $u, 'nav' => 'tasks', 'crumb' => 'Tasks'], 'app'); return; }
         self::details($u, $ws, $t, (string)($_GET['tab'] ?? 'overview'));

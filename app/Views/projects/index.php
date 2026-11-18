@@ -14,23 +14,20 @@ $fv = $form['values'] ?? ['name' => '', 'description' => '', 'start_date' => '',
     <p class="m-0 rounded-xl border border-line bg-surface px-3.5 py-2.5 text-tiny text-muted">You can see the projects you belong to. Owners, admins and managers create and edit projects.</p>
   <?php endif; ?>
 
-  <form method="get" action="<?= url('/projects') ?>" class="flex flex-wrap justify-between items-center gap-2.5" id="project-filters" role="search" data-live data-live-target="project-results">
-    <div class="flex h-10 min-w-48 max-w-75 w-full flex-1 items-center gap-2 rounded-control border border-line bg-surface px-3 text-muted focus-within:outline-2 focus-within:outline-offset-1 focus-within:outline-brand">
+  <form method="get" action="<?= url('/projects') ?>" class="flex flex-wrap items-center gap-2.5" id="project-filters" role="search" data-live data-live-target="project-results">
+    <div class="flex h-10 min-w-48 flex-1 items-center gap-2 rounded-control border border-line bg-surface px-3 text-muted focus-within:outline-2 focus-within:outline-offset-1 focus-within:outline-brand">
       <?= icon('search', 16) ?>
       <input type="search" name="q" value="<?= e($f['q']) ?>" placeholder="Search projects…" aria-label="Search projects" maxlength="100" class="h-full min-w-0 flex-1 border-0 bg-transparent p-0 text-xs text-ink outline-none placeholder:text-muted">
     </div>
-
-    <div class="flex flex-wrap items-center gap-2.5">
-      <select name="status" aria-label="Status" data-kauto class="<?= $select ?>">
-        <option value="all">All status</option>
-        <?php foreach (Project::STATUS as $k => $l): ?><option value="<?= $k ?>" data-tag="<?= Ui::tone('project', $k) ?>"<?= $f['status'] === $k ? ' selected' : '' ?>><?= e($l) ?></option><?php endforeach; ?>
-        <option value="archived"<?= $f['status'] === 'archived' ? ' selected' : '' ?>>Archived</option>
-      </select>
-      <select name="sort" aria-label="Sort" data-kauto class="<?= $select ?>">
-        <?php foreach (Project::SORT as $k => $l): ?><option value="<?= $k ?>"<?= $f['sort'] === $k ? ' selected' : '' ?>>Sort: <?= e($l) ?></option><?php endforeach; ?>
-      </select>
-      <noscript><button class="btn" type="submit">Apply</button></noscript>
-    </div>
+    <select name="status" aria-label="Status" data-kauto class="<?= $select ?>">
+      <option value="all">All status</option>
+      <?php foreach (Project::STATUS as $k => $l): ?><option value="<?= $k ?>" data-tag="<?= Ui::tone('project', $k) ?>"<?= $f['status'] === $k ? ' selected' : '' ?>><?= e($l) ?></option><?php endforeach; ?>
+      <option value="archived"<?= $f['status'] === 'archived' ? ' selected' : '' ?>>Archived</option>
+    </select>
+    <select name="sort" aria-label="Sort" data-kauto class="<?= $select ?>">
+      <?php foreach (Project::SORT as $k => $l): ?><option value="<?= $k ?>"<?= $f['sort'] === $k ? ' selected' : '' ?>>Sort: <?= e($l) ?></option><?php endforeach; ?>
+    </select>
+    <noscript><button class="btn" type="submit">Apply</button></noscript>
   </form>
 
   <div id="project-results" data-live-area class="flex flex-col gap-4.5">
@@ -74,7 +71,7 @@ $fv = $form['values'] ?? ['name' => '', 'description' => '', 'start_date' => '',
                 <summary class="icon-button list-none border-transparent bg-transparent [&::-webkit-details-marker]:hidden" aria-label="Project actions for <?= e($p['name']) ?>"><?= icon('more', 18) ?></summary>
                 <div class="absolute top-full right-0 z-20 mt-1 w-44 rounded-xl border border-line bg-surface p-1.5 shadow-modal">
                   <button type="button" class="menu-item" data-modal-open="project-modal" data-fill="<?= e(json_encode($edit)) ?>">Edit project</button>
-                  <button type="button" class="menu-item text-danger" data-project-archive="<?= (int)$p['id'] ?>" data-name="<?= e($p['name']) ?>" data-tasks="<?= (int)$p['tasks_total'] ?>" data-logs="<?= (int)$p['logs_count'] ?>">Archive project</button>
+                  <?php if ($canArchive): ?><button type="button" class="menu-item text-danger" data-project-archive="<?= (int)$p['id'] ?>" data-name="<?= e($p['name']) ?>" data-tasks="<?= (int)$p['tasks_total'] ?>" data-logs="<?= (int)$p['logs_count'] ?>">Archive project</button><?php endif; ?>
                 </div>
               </details>
             <?php endif; ?>

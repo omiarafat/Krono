@@ -28,16 +28,17 @@
     window.KronoUI && window.KronoUI.sync(form);
   }
   /* role modal: only needed while a manager with reports moves to another role */
+  function baseOf(sel) { var o = sel && sel.options && sel.options[sel.selectedIndex]; return (o && o.dataset.base) || (sel ? sel.value : ''); }
   function roleWrap(dlg) {
     var form = $('form', dlg), m = dlg._m; if (!m) return;
-    var need = m.role === 'manager' && +m.reports > 0 && form.elements.role.value !== 'manager';
+    var need = m.role === 'manager' && +m.reports > 0 && baseOf(form.elements.role) !== 'manager';
     var wrap = $('[data-reports-wrap]', form), sel = $('select', wrap); wrap.hidden = !need; sel.disabled = !need; window.KronoUI && window.KronoUI.sync(form);
   }
 
   function run(act, m) {
     var M = window.KronoModals; if (!M) return;
     closeMenu();
-    if (act === 'role') { var d = $('#role-modal'); d._m = m; prep(d, m, false); M.open('role-modal', { user_id: m.id, name: m.name, role: m.role }); roleWrap(d); }
+    if (act === 'role') { var d = $('#role-modal'); d._m = m; prep(d, m, false); M.open('role-modal', { user_id: m.id, name: m.name, role: m.role_token || m.role }); roleWrap(d); }
     else if (act === 'manager') M.open('assign-modal', { user_id: m.id, manager_id: m.manager_id || '' });
     else if (act === 'deactivate') { var e = $('#deactivate-modal'); prep(e, m, m.role === 'manager' && +m.reports > 0); M.open('deactivate-modal', { user_id: m.id, name: m.name }); }
     else if (act === 'reactivate') M.open('reactivate-modal', { user_id: m.id, name: m.name });
@@ -82,11 +83,11 @@
     put('initials', ini); put('name', m.name + (m.self ? ' (you)' : '')); put('email', m.email);
     var tone = m.status === 'active' ? 'green' : m.status === 'invited' ? 'amber' : 'gray';
     $('[data-d="status"]', drawer).innerHTML = '<span class="tag tag-' + tone + '">' + m.status.charAt(0).toUpperCase() + m.status.slice(1) + '</span>';
-    put('role', m.role_label); put('manager', m.manager || '—'); put('reports', m.role === 'manager' ? String(m.reports) : '—');
+    put('role', m.role_name || m.role_label); put('manager', m.manager || '—'); put('reports', m.role === 'manager' ? String(m.reports) : '—');
     put('joined', m.kind === 'invite' ? 'Not yet' : m.joined_label); put('last', m.kind === 'invite' ? '—' : m.last_label);
     var ex = $('[data-d="extra"]', drawer).parentNode; ex.hidden = m.kind !== 'invite';
     if (m.kind === 'invite') put('extra', 'Sent ' + m.joined_label + ' · expires ' + m.expires_label);
-    var notes = JSON.parse(drawer.dataset.notes || '{}'); put('note', notes[m.role] || '');
+    var notes = JSON.parse(drawer.dataset.notes || '{}'); put('note', notes[m.role_token || m.role] || '');
     var box = $('[data-d-actions]', drawer); box.innerHTML = '';
     actions(m).forEach(function (a) {
       var b = document.createElement('button'); b.type = 'button'; b.className = 'btn' + (a.danger ? ' btn-danger' : ''); b.textContent = a.l;
@@ -102,7 +103,7 @@
   /* ---- fields that depend on another field: data-show-if="field:v1,v2" ---- */
   function showIf(form) {
     all('[data-show-if]', form).forEach(function (w) {
-      var p = w.dataset.showIf.split(':'), src = form.elements[p[0]], on = !!src && p[1].split(',').indexOf(src.value) > -1;
+      var p = w.dataset.showIf.split(':'), src = form.elements[p[0]], on = !!src && p[1].split(',').indexOf(baseOf(src)) > -1;
       w.hidden = !on; all('select, input', w).forEach(function (x) { x.disabled = !on; }); window.KronoUI && window.KronoUI.sync(w);
     });
   }

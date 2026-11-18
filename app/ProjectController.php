@@ -14,29 +14,29 @@ final class ProjectController {
     private static function page(array $u, array $ws, array $f, ?array $form = null): void {
         $list = null; $failed = false;
         try { $list = Project::listing((int)$u['id'], $ws, $f); } catch (Throwable $e) { error_log((string)$e); $failed = true; }
-        render('projects/index', ['title' => 'Projects', 'user' => $u, 'nav' => 'projects', 'crumb' => 'Projects', 'ws' => $ws, 'canManage' => Project::canManage($ws),
+        render('projects/index', ['title' => 'Projects', 'user' => $u, 'nav' => 'projects', 'crumb' => 'Projects', 'ws' => $ws, 'canManage' => Project::canManage($ws), 'canArchive' => Project::canArchive($ws),
             'f' => $f, 'list' => $list, 'failed' => $failed, 'form' => $form, 'back' => '/projects'], 'app');
     }
 
-    static function index(): void { [$u, $ws] = self::who(); self::page($u, $ws, Project::cleanFilters($_GET)); }
+    static function index(): void { [$u, $ws] = self::who(); Perm::gate($ws, 'projects.view', $u, 'projects', 'Projects'); self::page($u, $ws, Project::cleanFilters($_GET)); }
 
     // ---------- details ----------
 
     /** The Project Details page. $form / $taskForm = a form that came back with errors (its modal reopens). */
     static function details(array $u, array $ws, array $p, string $tab, int $actPage, ?array $form = null, ?array $taskForm = null): void {
         $tz = Workspace::tz($ws); $id = (int)$p['id'];
-        $uid = (int)$u['id']; $manage = Project::canManage($ws) && !$p['archived_at']; $add = Task::canAdd($ws, $p, $uid) && !$p['archived_at'];
+        $uid = (int)$u['id']; $manage = Project::canManage($ws) && !$p['archived_at']; $arch = Project::canArchive($ws); $add = Task::canAdd($ws, $p, $uid) && !$p['archived_at'];
         $failed = false; $s = $tasks = $feed = null;
         try { $s = Project::summary($p); $tasks = Task::forProject($id, $tab); $feed = Activity::feed($id, $actPage, isset($_GET['activity']) ? 12 : 4); }
         catch (Throwable $e) { error_log((string)$e); $failed = true; }
         render('projects/show', ['title' => $p['name'], 'user' => $u, 'nav' => 'projects', 'crumb' => 'Projects', 'crumb2' => $p['name'], 'ws' => $ws, 'p' => $p, 's' => $s, 'tasks' => $tasks, 'feed' => $feed,
-            'tab' => $tab, 'tz' => $tz, 'canManage' => $manage, 'canAdd' => $add, 'failed' => $failed, 'form' => $form, 'taskForm' => $taskForm,
+            'tab' => $tab, 'tz' => $tz, 'canManage' => $manage, 'canArchive' => $arch, 'canAdd' => $add, 'failed' => $failed, 'form' => $form, 'taskForm' => $taskForm,
             'activityAll' => isset($_GET['activity']), 'back' => '/project?id=' . $id], 'app');
     }
 
     /** Project Details. Unknown id, another workspace and "no access" all give the same not-found page (never reveals that a project exists). */
     static function show(): void {
-        [$u, $ws] = self::who();
+        [$u, $ws] = self::who(); Perm::gate($ws, 'projects.view', $u, 'projects', 'Projects');
         $p = Project::find((int)($_GET['id'] ?? 0), (int)$u['id'], $ws);
         if (!$p) { http_response_code(404); render('projects/not-found', ['title' => 'Project not found', 'user' => $u, 'nav' => 'projects', 'crumb' => 'Projects'], 'app'); return; }
         $tab = (string)($_GET['tab'] ?? 'all'); if ($tab !== 'all' && !isset(Task::STATUS[$tab])) $tab = 'all';
@@ -45,7 +45,7 @@ final class ProjectController {
 
     // ---------- create / edit / archive ----------
 
-    /** Create (no id) or edit (id). Only Owner / Admin / Manager. */
+    /** Create (no id) or edit (id). Needs projects.edit. */
     static function save(): void {
         [$u, $ws] = self::who(); [$back, $backId] = self::back();
         if (!Project::canManage($ws)) self::denied($back);
@@ -67,7 +67,7 @@ final class ProjectController {
 
     static function archive(): void {
         [$u, $ws] = self::who();
-        if (!Project::canManage($ws)) self::denied('/projects');
+        if (!Project::canArchive($ws)) self::denied('/projects');
         $p = Project::find((int)($_POST['id'] ?? 0), (int)$u['id'], $ws);
         if (!$p || $p['archived_at']) self::denied('/projects', 'That project is not available.');
         try { $n = Project::archive($p, (int)$u['id']); }

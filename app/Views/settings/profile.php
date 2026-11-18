@@ -32,17 +32,10 @@ $now = new DateTimeImmutable('now', $tz);
   <h2 class="m-0 text-base" id="pi-title">Profile information</h2>
   <p class="mt-1 mb-5 text-xs text-muted">Your name and account identity</p>
   <?php if (!empty($errors['_'])): ?><div class="mb-4 rounded-xl border border-danger/35 bg-danger/8 px-3 py-2.5 text-tiny text-danger" role="alert"><strong>Could not save changes.</strong> <?= e($errors['_']) ?></div><?php endif; ?>
-  <div class="mb-5 flex flex-wrap justify-between items-center gap-3.5">
-    <div class="flex flex-col gap-0.5">
-      <?= Avatar::html((int)$profile['id'], $profile['name'] ?: $profile['email'], $profile['avatar'], 'h-13.5 w-13.5', 'text-lg') ?>
-      <div class="min-w-0 flex-1">
-        <div class="truncate text-sm font-bold"><?= e($profile['name']) ?></div>
-        <div class="text-tiny text-muted">
-          <?= $profile['avatar'] ? 'Your photo is shown next to your name' : 'No photo yet. Your first letter is shown instead' ?>
-        </div>
-        <div class="mt-0.75 text-micro text-muted">JPG, PNG or WebP, up to 2 MB</div>
-      </div>
-    </div>
+  <div class="mb-5 flex flex-wrap items-center gap-3.5">
+    <?= Avatar::html((int)$profile['id'], $profile['name'] ?: $profile['email'], $profile['avatar'], 'h-13.5 w-13.5', 'text-lg') ?>
+    <div class="min-w-0 flex-1"><div class="truncate text-sm font-bold"><?= e($profile['name']) ?></div><div class="text-tiny text-muted"><?= $profile['avatar'] ? 'Your photo is shown next to your name' : 'No photo yet. Your first letter is shown instead' ?></div>
+      <div class="mt-0.75 text-micro text-muted">JPG, PNG or WebP, up to 2 MB</div></div>
     <div class="flex flex-wrap items-center gap-2">
       <form method="post" action="<?= url('/settings/avatar') ?>" enctype="multipart/form-data" class="m-0" data-photo-form><?= csrf_field() ?>
         <input type="file" name="photo" id="pf-photo" accept="image/jpeg,image/png,image/webp" class="sr-only" data-photo-input>

@@ -5,7 +5,7 @@ final class AttendanceController {
 
     static function index(): void {
         $u = Auth::user(); if (!$u) redirect('/login');
-        $uid = (int)$u['id']; $ws = Workspace::ensureFor($uid); $tz = Workspace::tz($ws);
+        $uid = (int)$u['id']; $ws = Workspace::ensureFor($uid); Perm::gate($ws, 'attendance.view', $u, 'attendance', 'Attendance'); $tz = Workspace::tz($ws);
         $people = [$uid => (string)$u['name']]; $list = null; $any = false; $failed = false; $f = null;
         try {
             $people = TimeLog::people($uid, $ws); $f = Attendance::cleanFilters($_GET, $tz, $people, $uid);
@@ -19,7 +19,7 @@ final class AttendanceController {
     /** /attendance/details?id=N (one session) or ?user=N&date=Y-m-d (that person's first session that day). */
     static function details(): void {
         $u = Auth::user(); if (!$u) redirect('/login');
-        $uid = (int)$u['id']; $ws = Workspace::ensureFor($uid); $tz = Workspace::tz($ws);
+        $uid = (int)$u['id']; $ws = Workspace::ensureFor($uid); Perm::gate($ws, 'attendance.view', $u, 'attendance', 'Attendance'); $tz = Workspace::tz($ws);
         $nf = fn() => (http_response_code(404) || true) && render('attendance/not-found', ['title' => 'Attendance record not found', 'user' => $u, 'nav' => 'attendance', 'crumb' => 'Attendance', 'crumb2' => 'Attendance Details', 'crumburl' => '/attendance', 'ws' => $ws], 'app');
         try {
             $people = TimeLog::people($uid, $ws); $s = null; $emp = $uid; $date = (new DateTimeImmutable('today', $tz))->format('Y-m-d');

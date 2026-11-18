@@ -3,7 +3,7 @@
 final class TimeLogController {
     static function index(): void {
         $u = Auth::user(); if (!$u) redirect('/login');
-        $uid = (int)$u['id']; $ws = Workspace::ensureFor($uid); $tz = Workspace::tz($ws);
+        $uid = (int)$u['id']; $ws = Workspace::ensureFor($uid); Perm::gate($ws, 'time.view', $u, 'time', 'Time Tracking'); $tz = Workspace::tz($ws);
         $people = [$uid => (string)$u['name']]; $f = null; $list = null; $opt = ['projects' => [], 'tasks' => []]; $any = false; $failed = false;
         try {
             $people = TimeLog::people($uid, $ws); $f = TimeLog::cleanFilters($_GET, $tz, $people);

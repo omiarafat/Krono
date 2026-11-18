@@ -16,7 +16,7 @@ $reports = '<div data-reports-wrap hidden class="mt-3.5"><label class="field-lab
       <?php if (!empty($inviteForm['failed'])): ?><div class="rounded-xl border border-danger/35 bg-danger/8 px-3 py-2.5 text-tiny text-danger" role="alert"><strong>Could not send the invitation.</strong> Nothing was saved. Check your connection and try again. Your input has been kept.</div><?php endif; ?>
       <div><label class="field-label" for="inv-email">Email address <span class="text-danger">*</span></label><input class="field-input" id="inv-email" type="email" name="email" maxlength="190" placeholder="name@company.com" autocomplete="off" value="<?= e($iv['email']) ?>"<?= $bad('email') ?>><?= $err('email') ?></div>
       <div><label class="field-label" for="inv-role">Role</label>
-        <select class="field-input" id="inv-role" name="role"<?= $bad('role') ?>><?php foreach ($roles as $k => $l): ?><option value="<?= e($k) ?>"<?= $iv['role'] === $k ? ' selected' : '' ?>><?= e($l) ?></option><?php endforeach; ?></select><?= $err('role') ?></div>
+        <select class="field-input" id="inv-role" name="role"<?= $bad('role') ?>><?php foreach ($roles as $k => $l): ?><option value="<?= e($k) ?>" data-base="<?= e(Team::baseOf($ws, $k)) ?>"<?= $iv['role'] === $k ? ' selected' : '' ?>><?= e($l) ?></option><?php endforeach; ?></select><?= $err('role') ?></div>
       <div data-show-if="role:member,viewer"><label class="field-label" for="inv-manager">Direct manager</label>
         <select class="field-input" id="inv-manager" name="manager_id"<?= $bad('manager_id') ?>><option value="">No manager</option><?php foreach ($managers as $id => $n): ?><option value="<?= (int)$id ?>"<?= (int)$iv['manager_id'] === (int)$id ? ' selected' : '' ?>><?= e($n) ?></option><?php endforeach; ?></select><?= $err('manager_id') ?>
         <p class="mt-1.5 mb-0 text-micro text-muted">Optional. A manager can see attendance and reports for direct reports only.</p></div>
@@ -31,7 +31,7 @@ $reports = '<div data-reports-wrap hidden class="mt-3.5"><label class="field-lab
     <?= $head('rm-title', 'shield', 'Change role', 'Update what <strong data-fill-text="name">this member</strong> can do in the workspace.') ?>
     <div class="modal-body">
       <label class="field-label" for="rm-role">New role</label>
-      <select class="field-input" id="rm-role" name="role"><?php foreach ($roles as $k => $l): ?><option value="<?= e($k) ?>"><?= e($l) ?></option><?php endforeach; ?></select>
+      <select class="field-input" id="rm-role" name="role"><?php foreach ($roles as $k => $l): ?><option value="<?= e($k) ?>" data-base="<?= e(Team::baseOf($ws, $k)) ?>"><?= e($l) ?></option><?php endforeach; ?></select>
       <p class="mt-1.5 mb-0 text-micro text-muted">Members and Viewers can be given a direct manager. Other roles have none.</p>
       <?= $reports ?>
     </div>

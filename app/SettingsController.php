@@ -1,35 +1,37 @@
 <?php
-/** Settings: Account (profile, password, sessions), Preferences (appearance, notifications) and Workspace Settings (Owner / Admin only). */
+/** Settings: Account (profile, password, sessions), Preferences (appearance, notifications) and Workspace Settings (each tab needs its own permission). */
 final class SettingsController {
-    /** group => [tab key => [menu label, icon, lowest role that may see it, page address, page title, page sub-title]]. The left menu and every page check this one list. */
+    /** group => [tab key => [menu label, icon, permission needed ("" = everyone), page address, page title, page sub-title]]. The left menu and every page check this one list. */
     const GROUPS = [
         'Account' => [
-            'profile' => ['Profile information', 'user', 'viewer', '/settings/profile', 'Profile settings', 'Manage your account details and preferences'],
-            'security' => ['Password', 'lock', 'viewer', '/settings/security', 'Password', 'Keep your account safe with a strong password'],
-            'sessions' => ['Sessions', 'monitor', 'viewer', '/settings/sessions', 'Sessions', 'See where you are signed in and sign out of other devices'],
+            'profile' => ['Profile information', 'user', '', '/settings/profile', 'Profile settings', 'Manage your account details and preferences'],
+            'security' => ['Password', 'lock', '', '/settings/security', 'Password', 'Keep your account safe with a strong password'],
+            'sessions' => ['Sessions', 'monitor', '', '/settings/sessions', 'Sessions', 'See where you are signed in and sign out of other devices'],
         ],
         'Preferences' => [
-            'appearance' => ['Appearance & notifications', 'sliders', 'viewer', '/settings/appearance', 'Appearance & notifications', 'Choose how Krono looks and which emails you receive'],
+            'appearance' => ['Appearance & notifications', 'sliders', '', '/settings/appearance', 'Appearance & notifications', 'Choose how Krono looks and which emails you receive'],
         ],
         'Workspace Settings' => [
-            'general' => ['General', 'building', 'admin', '/settings/workspace/general', 'Workspace Settings', 'Workspace identity and default preferences'],
-            'roles' => ['Roles & Permissions', 'shield', 'admin', '/settings/workspace/roles', 'Workspace Settings', 'Built-in roles and what each one can see and do'],
-            'audit' => ['Audit Log', 'history', 'admin', '/settings/workspace/audit', 'Workspace Settings', 'Review important workspace changes'],
+            'general' => ['General', 'building', 'workspace.settings', '/settings/workspace/general', 'Workspace Settings', 'Workspace identity and default preferences'],
+            'roles' => ['Roles & Permissions', 'shield', 'workspace.roles', '/settings/workspace/roles', 'Workspace Settings', 'Built-in and custom roles, and what each one can see and do'],
+            'audit' => ['Audit Log', 'history', 'workspace.audit', '/settings/workspace/audit', 'Workspace Settings', 'Review important workspace changes'],
         ],
     ];
 
     private static function who(): array { $u = Auth::user(); if (!$u) redirect('/login'); return $u; }
     private static function go(string $tab): never { foreach (self::GROUPS as $g) if (isset($g[$tab])) redirect($g[$tab][3]); redirect('/settings'); }
 
+    private static function allowed(array $entry): bool { return $entry[2] === '' || Perm::me($entry[2]); }
+
     /** The menu entry for $key when the signed-in person may use it, else null. */
     private static function find(string $key): ?array {
-        foreach (self::GROUPS as $g) if (isset($g[$key])) return Workspace::atLeast(Workspace::role(), $g[$key][2]) ? $g[$key] : null;
+        foreach (self::GROUPS as $g) if (isset($g[$key])) return self::allowed($g[$key]) ? $g[$key] : null;
         return null;
     }
-    /** Groups with only the entries this person may use; a group with nothing left is dropped (so "Workspace Settings" disappears for Managers, Members and Viewers). */
+    /** Groups with only the entries this person may use; a group with nothing left is dropped (so "Workspace Settings" disappears for people without any of its permissions). */
     static function menu(): array {
-        $role = Workspace::role(); $out = [];
-        foreach (self::GROUPS as $name => $items) { $ok = array_filter($items, fn($i) => Workspace::atLeast($role, $i[2])); if ($ok) $out[$name] = $ok; }
+        $out = [];
+        foreach (self::GROUPS as $name => $items) { $ok = array_filter($items, fn($i) => self::allowed($i)); if ($ok) $out[$name] = $ok; }
         return $out;
     }
     /** Opens a tab for someone allowed to see it. Anyone else gets the plain "page not found" so the page's existence is not shown. */
@@ -39,16 +41,16 @@ final class SettingsController {
         return [$u, $e];
     }
 
-    private static function page(string $key, array $u, array $extra = [], int $status = 200): void {
+    private static function page(string $key, array $u, array $extra = [], int $status = 200, ?string $view = null): void {
         $e = self::find($key); $uid = (int)$u['id']; $ws = Workspace::ensureFor($uid);
         $d = ['title' => 'Settings', 'user' => $u, 'nav' => 'settings', 'crumb' => 'Settings', 'crumburl' => '/settings', 'crumb2' => $e[0], 'tab' => $key, 'entry' => $e, 'menu' => self::menu(), 'ws' => $ws, 'wid' => (int)$ws['id'], 'tz' => Workspace::tz($ws)];
         if ($key === 'profile') { $d['profile'] = Account::profile($uid); $d['pending'] = Account::pendingEmail($uid); $d['zones'] = Account::timezones(); $d['formats'] = array_keys(Account::DATE_FORMATS); }
         if ($key === 'sessions') $d['sessions'] = Account::sessions($uid);
         if ($key === 'appearance') $d['prefs'] = Account::prefs($uid);
         if ($key === 'general') { $d['g'] = WsSettings::general((int)$ws['id']); $d['zones'] = Account::timezones(); }
-        if ($key === 'roles') $d['counts'] = WsSettings::roleCounts((int)$ws['id']);
+        if ($key === 'roles' && !$view) { $d['counts'] = WsSettings::roleCounts((int)$ws['id']); $d['custom'] = Perm::customRoles((int)$ws['id']); $d['people'] = Roles::people((int)$ws['id']); }
         if ($status !== 200) http_response_code($status);
-        render('settings/' . ($e[2] === 'admin' || $e[2] === 'owner' ? 'workspace/' : '') . $key, $extra + $d, 'app');
+        render('settings/' . (str_starts_with($e[3], '/settings/workspace') ? 'workspace/' : '') . ($view ?? $key), $extra + $d, 'app');
     }
 
     static function root(): void { self::who(); redirect('/settings/profile'); }
@@ -122,6 +124,64 @@ final class SettingsController {
 
     static function general(): void { [$u] = self::open('general'); self::page('general', $u); }
     static function roles(): void { [$u] = self::open('roles'); self::page('roles', $u); }
+
+    // ---------- custom roles ----------
+
+    private static function roleNotFound(array $u): never {
+        http_response_code(404); render('settings/not-found', ['title' => 'Page not found', 'user' => $u, 'nav' => 'settings', 'crumb' => 'Settings'], 'app'); exit;
+    }
+
+    /** What the role form shows: ['mode' => new|edit|view, 'role' => [id, name, description, scope, permissions, builtin]]. Built-in roles are view-only. */
+    private static function roleSource(array $u, array $ws): array {
+        $blank = ['id' => 0, 'name' => '', 'description' => '', 'scope' => 'own', 'permissions' => [], 'builtin' => ''];
+        $key = (string)($_GET['role'] ?? ''); $copy = (string)($_GET['copy'] ?? '');
+        $built = function (string $k): ?array { $b = Perm::BUILT_IN[$k] ?? null; return $b ? ['id' => 0, 'name' => $b[0], 'description' => $b[1], 'scope' => Perm::SCOPE_OF[$k], 'permissions' => Perm::preset($k), 'builtin' => $k] : null; };
+        $custom = fn(string $id): ?array => ctype_digit($id) ? Perm::custom((int)$ws['id'], (int)$id) : null;
+        if ($key !== '') {
+            if ($b = $built($key)) return ['mode' => 'view', 'role' => $b];
+            if ($c = $custom($key)) return ['mode' => Roles::editable($ws, $c) ? 'edit' : 'view', 'role' => $c + ['builtin' => '']];
+            self::roleNotFound($u);
+        }
+        if ($copy !== '') {
+            $src = $built($copy) ?? ($custom($copy) ? $custom($copy) + ['builtin' => ''] : null); if (!$src) self::roleNotFound($u);
+            $name = mb_substr('Copy of ' . $src['name'], 0, 40);
+            return ['mode' => 'new', 'role' => ['id' => 0, 'name' => $name, 'builtin' => ''] + $src];
+        }
+        return ['mode' => 'new', 'role' => $blank];
+    }
+
+    static function roleForm(): void {
+        [$u] = self::open('roles'); $ws = Workspace::ensureFor((int)$u['id']); $src = self::roleSource($u, $ws);
+        self::roleView($u, $ws, $src['mode'], $src['role']);
+    }
+
+    private static function roleView(array $u, array $ws, string $mode, array $role, array $errors = [], int $status = 200): void {
+        $title = $mode === 'new' ? 'Add a role' : ($mode === 'edit' ? 'Edit role' : $role['name']);
+        $sub = $mode === 'view' ? ($role['builtin'] !== '' ? 'A built-in role. It can be viewed and copied, but not changed.' : 'You can see this role but not change it.') : 'Choose a data scope and what people with this role can do.';
+        $entry = self::find('roles'); $entry[4] = $title; $entry[5] = $sub;
+        $e = $entry; self::page('roles', $u, ['entry' => $e, 'mode' => $mode, 'role' => $role, 'errors' => $errors, 'mine' => Perm::set($ws), 'myScope' => Perm::scope($ws)], $status, 'role-form');
+    }
+
+    static function saveRole(): void {
+        [$u] = self::open('roles'); $ws = Workspace::ensureFor((int)$u['id']); $id = (int)($_POST['id'] ?? 0); $current = null;
+        if ($id) { $current = Perm::custom((int)$ws['id'], $id); if (!$current) { flash('error', 'That role is not available.', 'Could not save the role'); redirect('/settings/workspace/roles'); } }
+        if ($current && !Roles::editable($ws, $current)) { flash('error', 'You cannot change a role that gives more access than you have.', 'Permission denied'); redirect('/settings/workspace/roles'); }
+        [$err, $c] = Roles::check($ws, $_POST, $current);
+        $shown = ['id' => $id, 'name' => $c['name'], 'description' => $c['description'], 'scope' => $c['scope'], 'permissions' => $c['sent'], 'builtin' => ''];
+        if ($err) { self::roleView($u, $ws, $id ? 'edit' : 'new', $shown, $err, 422); return; }
+        try { Roles::save($ws, (int)$u['id'], $c, $current); }
+        catch (Throwable $e) { error_log((string)$e); self::roleView($u, $ws, $id ? 'edit' : 'new', $shown, ['_' => 'Your changes were not saved. Check your connection and try again. Your input has been kept.'], 500); return; }
+        flash('ok', $current ? '“' . $c['name'] . '” was updated.' : '“' . $c['name'] . '” was created. You can now give it to people in Teams.', $current ? 'Role updated' : 'Role created');
+        redirect('/settings/workspace/roles');
+    }
+
+    static function deleteRole(): void {
+        [$u] = self::open('roles'); $ws = Workspace::ensureFor((int)$u['id']); $role = Perm::custom((int)$ws['id'], (int)($_POST['id'] ?? 0));
+        if (!$role || !Roles::editable($ws, $role)) { flash('error', 'That role is not available.', 'Could not delete the role'); redirect('/settings/workspace/roles'); }
+        try { $err = Roles::delete($ws, (int)$u['id'], $role); } catch (Throwable $e) { error_log((string)$e); $err = 'Could not delete the role. Try again.'; }
+        if ($err !== '') flash('error', $err, 'Role kept'); else flash('ok', '“' . $role['name'] . '” was deleted.', 'Role deleted');
+        redirect('/settings/workspace/roles');
+    }
 
     static function saveGeneral(): void {
         [$u] = self::open('general'); $wid = (int)Workspace::ensureFor((int)$u['id'])['id'];

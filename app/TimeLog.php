@@ -11,9 +11,9 @@ final class TimeLog {
     /** People whose logs the viewer may see: id => name (self first). */
     static function people(int $uid, array $ws): array {
         $wid = (int)$ws['id'];
-        if (Workspace::atLeast($ws['role'], 'admin')) {
+        if (Perm::scope($ws) === 'all') {
             $rows = Db::q("SELECT u.id, u.name FROM workspace_members m JOIN users u ON u.id = m.user_id WHERE m.workspace_id = ? AND m.status = 'active' ORDER BY u.name, u.id", [$wid])->fetchAll();
-        } elseif ($ws['role'] === 'manager') {
+        } elseif (Perm::scope($ws) === 'team') {
             $rows = Db::q("SELECT u.id, u.name FROM workspace_members m JOIN users u ON u.id = m.user_id WHERE m.workspace_id = ? AND m.status = 'active' AND (m.user_id = ? OR m.manager_id = ?) ORDER BY u.name, u.id", [$wid, $uid, $uid])->fetchAll();
         } else {
             $rows = Db::q('SELECT id, name FROM users WHERE id = ?', [$uid])->fetchAll();

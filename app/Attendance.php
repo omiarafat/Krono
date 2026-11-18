@@ -116,7 +116,9 @@ final class Attendance {
 
     /** Employee card data: name, email, workspace role, manager name (or null). */
     static function employee(int $uid, array $ws): array {
-        $r = Db::q('SELECT u.name, u.email, m.role, mg.name manager FROM users u LEFT JOIN workspace_members m ON m.user_id = u.id AND m.workspace_id = ? LEFT JOIN users mg ON mg.id = m.manager_id WHERE u.id = ?', [(int)$ws['id'], $uid])->fetch();
+        try { $r = Db::q('SELECT u.name, u.email, m.role, cr.name custom, mg.name manager FROM users u LEFT JOIN workspace_members m ON m.user_id = u.id AND m.workspace_id = ? LEFT JOIN workspace_roles cr ON cr.id = m.custom_role_id LEFT JOIN users mg ON mg.id = m.manager_id WHERE u.id = ?', [(int)$ws['id'], $uid])->fetch(); }
+        catch (Throwable $e) { $r = Db::q('SELECT u.name, u.email, m.role, NULL custom, mg.name manager FROM users u LEFT JOIN workspace_members m ON m.user_id = u.id AND m.workspace_id = ? LEFT JOIN users mg ON mg.id = m.manager_id WHERE u.id = ?', [(int)$ws['id'], $uid])->fetch(); }
+        if ($r && !empty($r['custom'])) $r['role'] = $r['custom'];
         return $r ?: ['name' => '', 'email' => '', 'role' => null, 'manager' => null];
     }
 
