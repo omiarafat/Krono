@@ -4,6 +4,7 @@
    data-required="a,b"   : fields that must be filled (inline "This field is required.").
    input[data-orig]      : e-mail field; while it differs from the saved address the [data-email-pw] row (current password) shows.
    [data-open=id] / [data-close] open and close a plain <dialog>.
+   button[data-menu-toggle]: collapses the left Settings menu to icons only (remembered in this browser; clicking an icon opens that page and the menu stays as it is).
    input[data-photo-input]: choosing a photo uploads it at once (a photo over 2 MB is refused here, with a message, before it is sent). */
 (function () {
   'use strict';
@@ -12,6 +13,12 @@
   all('[data-open]').forEach(function (b) { b.addEventListener('click', function () { var d = document.getElementById(b.dataset.open); d && d.showModal(); }); });
   all('dialog [data-close]').forEach(function (b) { b.addEventListener('click', function () { b.closest('dialog').close(); }); });
 
+  var mt = $('[data-menu-toggle]');
+  if (mt) {
+    var root = document.documentElement, paint = function () { var c = root.dataset.settingsMenu === 'collapsed'; mt.setAttribute('aria-expanded', c ? 'false' : 'true'); mt.setAttribute('aria-label', c ? 'Open settings menu' : 'Collapse settings menu'); };
+    paint();
+    mt.addEventListener('click', function () { var c = root.dataset.settingsMenu === 'collapsed'; if (c) delete root.dataset.settingsMenu; else root.dataset.settingsMenu = 'collapsed'; try { localStorage.setItem('krono-settings-menu', c ? 'expanded' : 'collapsed'); } catch (x) {} paint(); });
+  }
   var photo = $('[data-photo-input]');
   if (photo) photo.addEventListener('change', function () {
     var f = photo.files[0], msg = $('[data-photo-error]'); if (!f) return;
