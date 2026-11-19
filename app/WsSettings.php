@@ -8,6 +8,7 @@ final class WsSettings {
         'role_changed' => 'Role updated', 'manager_changed' => 'Reports-to changed', 'reactivated' => 'Member reactivated', 'deactivated' => 'Member deactivated',
         'email_change_requested' => 'Email change requested', 'email_changed' => 'Email changed', 'password_changed' => 'Password changed',
         'workspace_updated' => 'Workspace settings updated', 'role_created' => 'Role created', 'role_updated' => 'Role updated', 'role_deleted' => 'Role deleted',
+        'daysoff_requested' => 'Days-off change requested', 'leave_requested' => 'Leave requested', 'request_approved' => 'Request approved', 'request_rejected' => 'Request rejected',
     ];
 
     // ---------- General ----------
@@ -17,16 +18,18 @@ final class WsSettings {
     static function general(int $wid): array {
         $r = Db::q('SELECT id, name, timezone, created_at FROM workspaces WHERE id = ?', [$wid])->fetch() ?: [];
         $r += Workspace::prefs($wid);
+        $r['days_off'] = DaysOff::workspaceCsv($wid);
         $r['owner'] = (string)Db::q("SELECT u.name FROM workspace_members m JOIN users u ON u.id = m.user_id WHERE m.workspace_id = ? AND m.role = 'owner' ORDER BY m.created_at LIMIT 1", [$wid])->fetchColumn();
         return $r;
     }
 
     /** @return array{0: array<string,string>, 1: array<string,string>} [errors, clean values] */
-    static function checkGeneral(array $p): array {
+    static function checkGeneral(array $p, bool $withDays = false): array {
         $err = []; $c = [
             'name' => trim(preg_replace('/\s+/', ' ', (string)($p['name'] ?? ''))), 'timezone' => (string)($p['timezone'] ?? ''), 'week_start' => (string)($p['week_start'] ?? ''),
             'date_format' => (string)($p['date_format'] ?? ''), 'time_format' => (string)($p['time_format'] ?? ''), 'language' => (string)($p['language'] ?? 'en'),
         ];
+        if ($withDays) $c['days_off'] = DaysOff::csv((array)($p['days_off'] ?? []));
         if ($c['name'] === '' || mb_strlen($c['name']) > 120) $err['name'] = 'Enter a workspace name (up to 120 characters).';
         if (!in_array($c['timezone'], DateTimeZone::listIdentifiers(), true)) $err['timezone'] = 'Choose a timezone from the list.';
         if (!isset(Workspace::WEEK_DAYS[$c['week_start']])) $err['week_start'] = 'Choose the first day of the week.';
@@ -37,10 +40,11 @@ final class WsSettings {
     }
 
     static function saveGeneral(int $wid, int $actor, array $c): void {
-        $old = self::general($wid); $names = ['name' => 'Name', 'timezone' => 'Timezone', 'week_start' => 'Week start', 'date_format' => 'Date format', 'time_format' => 'Time format', 'language' => 'Language'];
-        $changed = array_keys(array_filter($names, fn($l, $k) => (string)$old[$k] !== $c[$k], ARRAY_FILTER_USE_BOTH));
+        $old = self::general($wid); $names = ['name' => 'Name', 'timezone' => 'Timezone', 'week_start' => 'Week start', 'date_format' => 'Date format', 'time_format' => 'Time format', 'language' => 'Language', 'days_off' => 'Weekly days off'];
+        $changed = array_keys(array_filter($names, fn($l, $k) => array_key_exists($k, $c) && (string)$old[$k] !== $c[$k], ARRAY_FILTER_USE_BOTH));
         if (!$changed) return;
         Db::q('UPDATE workspaces SET name = ?, timezone = ?, week_start = ?, date_format = ?, time_format = ?, language = ? WHERE id = ?', [$c['name'], $c['timezone'], $c['week_start'], $c['date_format'], $c['time_format'], $c['language'], $wid]);
+        if (isset($c['days_off']) && in_array('days_off', $changed, true)) DaysOff::setWorkspace($wid, $c['days_off']);
         Team::audit($wid, $actor, null, 'workspace_updated', implode(', ', array_map(fn($k) => $names[$k], $changed)) . ' changed');
     }
 
@@ -93,6 +97,7 @@ final class WsSettings {
         if ($a === 'role_changed' && preg_match('/^(.+) -> (.+)$/', $d, $m)) $d = $who . ' · ' . $role($m[1]) . ' → ' . $role($m[2]);
         elseif ($a === 'invite_sent' && preg_match('/^(\S+) as (.+)$/', $d, $m)) $d = $m[1] . ' · ' . $role($m[2]);
         elseif ($a === 'invite_accepted') $d = $who . ' · ' . $role($d);
+        elseif (in_array($a, ['daysoff_requested', 'leave_requested', 'request_approved', 'request_rejected'], true)) $d = $who . ' · ' . $d;
         elseif (in_array($a, ['manager_changed', 'reactivated', 'deactivated'], true)) $d = $who;
         elseif (in_array($a, ['email_change_requested', 'email_changed', 'password_changed'], true)) $d = $who;
         return [$title, $d];

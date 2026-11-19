@@ -34,16 +34,18 @@ final class Perm {
             'team.invite' => ['Invite members', 'Send, resend and cancel invitations.'],
             'team.roles' => ['Change roles and reporting lines', 'Change a member\'s role and who they report to.'],
             'team.deactivate' => ['Deactivate members', 'Turn a member\'s access off or back on.'],
+            'team.approve' => ['Approve requests', 'Approve or reject days-off changes and leave requests (the whole workspace, or direct reports only).'],
         ],
         'Workspace' => [
             'workspace.settings' => ['Open workspace settings', 'Change the workspace name, timezone and display defaults.'],
             'workspace.audit' => ['See the audit log', 'Review and export the history of changes.'],
             'workspace.roles' => ['Manage roles', 'Create, edit and delete custom roles.'],
+            'workspace.daysoff' => ['Set weekly days off', 'Choose the weekly days off every member gets by default.'],
         ],
     ];
     /** A permission that needs another one first (turning it on turns the other on; turning the other off turns it off). */
     const NEEDS = ['projects.edit' => 'projects.view', 'projects.archive' => 'projects.edit', 'tasks.edit' => 'tasks.view', 'tasks.assign' => 'tasks.edit', 'tasks.delete' => 'tasks.edit',
-        'reports.export' => 'reports.view', 'team.invite' => 'team.view', 'team.roles' => 'team.view', 'team.deactivate' => 'team.view'];
+        'reports.export' => 'reports.view', 'team.invite' => 'team.view', 'team.roles' => 'team.view', 'team.deactivate' => 'team.view', 'team.approve' => 'team.view', 'workspace.daysoff' => 'workspace.settings'];
 
     const SCOPES = ['own' => 'Own data only', 'team' => 'Own data and direct reports', 'all' => 'Whole workspace'];
     const BASE = ['own' => 'member', 'team' => 'manager', 'all' => 'admin'];   // the built-in role a custom role of that scope is stored as
@@ -54,7 +56,7 @@ final class Perm {
     const BUILT_IN = [
         'owner' => ['Owner', 'Full workspace control', ['*']],
         'admin' => ['Admin', 'Manage workspace members and settings', ['*']],
-        'manager' => ['Manager', 'Manage assigned employees', ['projects.view', 'projects.edit', 'projects.archive', 'tasks.view', 'tasks.edit', 'tasks.assign', 'tasks.delete', 'time.view', 'attendance.view', 'reports.view', 'reports.export', 'team.view']],
+        'manager' => ['Manager', 'Manage assigned employees', ['projects.view', 'projects.edit', 'projects.archive', 'tasks.view', 'tasks.edit', 'tasks.assign', 'tasks.delete', 'time.view', 'attendance.view', 'reports.view', 'reports.export', 'team.view', 'team.approve']],
         'member' => ['Member', 'Standard member access', ['projects.view', 'tasks.view', 'time.view', 'attendance.view', 'reports.view', 'reports.export']],
         'viewer' => ['Viewer', 'Read-only access', ['projects.view', 'tasks.view', 'time.view', 'attendance.view', 'reports.view']],
     ];

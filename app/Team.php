@@ -86,10 +86,12 @@ final class Team {
         $reports = []; foreach ($rows as $r) if ($r['status'] === 'active' && $r['manager_id']) $reports[(int)$r['manager_id']] = ($reports[(int)$r['manager_id']] ?? 0) + 1;
         if (!$whole) $rows = array_values(array_filter($rows, fn($r) => (int)$r['user_id'] === $uid || (int)$r['manager_id'] === $uid));
         $last = self::lastActive(array_map(fn($r) => (int)$r['user_id'], $rows)); $out = [];
+        $own = DaysOff::ownMap($wid); $wsOff = DaysOff::workspaceCsv($wid); $req = DaysOff::pendingFor($ws, $uid, Workspace::tz($ws));
         foreach ($rows as $r) {
             $id = (int)$r['user_id']; $cid = (int)($r['custom_role_id'] ?? 0); $act = fn(string $perm) => $r['status'] === 'active' && self::canActOn($ws, $uid, $r['role'], $id, $perm);
             $out[] = ['kind' => 'member', 'id' => $id, 'user_id' => $id, 'name' => $r['name'], 'email' => $r['email'], 'role' => $r['role'], 'custom_role_id' => $cid, 'role_token' => $cid && $r['custom_name'] ? 'c' . $cid : $r['role'], 'role_name' => Perm::label($r['role'], $cid, $r['custom_name']), 'manager_id' => $r['manager_id'] ? (int)$r['manager_id'] : 0, 'manager' => $r['manager'],
                 'status' => $r['status'], 'joined' => $r['joined'], 'last' => $last[$id] ?? null, 'reports' => $reports[$id] ?? 0, 'self' => $id === $uid,
+                'days_off' => DaysOff::label($own[$id] ?? $wsOff), 'days_custom' => ($own[$id] ?? null) !== null, 'requests' => $r['status'] === 'active' ? ($req[$id] ?? []) : [],
                 'can' => ['role' => $act('team.roles'), 'manager' => $act('team.roles') && in_array($r['role'], self::REPORTING, true), 'deactivate' => $act('team.deactivate'),
                           'reactivate' => $r['status'] === 'deactivated' && self::canActOn($ws, $uid, $r['role'], $id, 'team.deactivate')]];
         }

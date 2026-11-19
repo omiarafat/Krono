@@ -10,9 +10,14 @@ $row = fn(string $k, string $l) => '<div class="flex items-start justify-between
       <button type="button" class="icon-button border-transparent bg-transparent" data-drawer-close aria-label="Close"><?= icon('close', 16) ?></button>
     </div>
     <div class="flex-1 overflow-y-auto px-5.5 py-3">
-      <?= $row('role', 'Role') ?><?= $row('manager', 'Reports to') ?><?= $row('reports', 'Direct reports') ?><?= $row('joined', 'Joined') ?><?= $row('last', 'Last active') ?><?= $row('extra', 'Invitation') ?>
+      <?= $row('role', 'Role') ?><?= $row('daysoff', 'Weekly days off') ?><?= $row('manager', 'Reports to') ?><?= $row('reports', 'Direct reports') ?><?= $row('joined', 'Joined') ?><?= $row('last', 'Last active') ?><?= $row('extra', 'Invitation') ?>
+      <div class="mt-4 hidden" data-d-requests>
+        <h3 class="m-0 mb-2 text-xs">Requests waiting for you</h3>
+        <div class="flex flex-col gap-2.5" data-d-request-list></div>
+      </div>
       <p class="mt-4 mb-0 rounded-xl border border-line bg-page px-3.5 py-3 text-tiny leading-copy text-muted" data-d="note"></p>
     </div>
     <div class="flex flex-wrap justify-end gap-2.25 border-t border-line bg-page px-5.5 py-3.5" data-d-actions></div>
   </div>
+  <template id="request-form-tpl"><form method="post" action="<?= url('/requests/decide') ?>" class="m-0 flex gap-2"><?= csrf_field() ?><input type="hidden" name="id" value=""><input type="hidden" name="do" value=""><input type="hidden" name="back" value="/teams"></form></template>
 </dialog>

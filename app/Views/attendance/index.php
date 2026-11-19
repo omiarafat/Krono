@@ -5,7 +5,8 @@ $openApp = '<form method="post" action="' . url('/open-app') . '" class="m-0">' 
 $dl = '<a class="btn btn-primary" href="' . e($downloadUrl) . '">' . icon('download', 16) . ' Download for Windows</a>';
 if ($any || $failed) { $heading = 'Attendance'; $sub = 'Review attendance sessions, breaks and net work time'; }
 else { $heading = 'Track time with Krono Desktop'; $sub = 'Install the lightweight Windows app to control attendance and task timers. Your saved history will appear here.'; $crumb = 'Track time with Krono Desktop'; }
-$actions = $dl;
+$leaveBtn = $canLeave ? '<button type="button" class="btn" data-modal-open="leave-modal">' . icon('calendar', 16) . ' Request leave</button>' : '';
+$actions = '<div class="flex flex-wrap items-center justify-end gap-2.5">' . $leaveBtn . $dl . '</div>';
 include ROOT . '/app/Views/partials/page-heading.php';
 $select = 'h-10 cursor-pointer rounded-control border border-line bg-surface px-3 text-tiny font-semibold text-muted hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand';
 $link = fn(array $o = []) => url(Attendance::path($f, $o));
@@ -87,5 +88,34 @@ $entries = fn(int $n) => $n === 1 ? '1 session' : $n . ' sessions';
     <?php endif; ?>
   </section>
   </div>
+<?php endif; ?>
+<?php if ($canLeave): $today = (new DateTimeImmutable('today', $tz)); ?>
+  <?php if ($leave): ?>
+  <section class="panel-card p-5.5 max-sm:p-4" aria-labelledby="lv-title">
+    <h2 class="m-0 text-base" id="lv-title">My leave requests</h2>
+    <p class="mt-1 mb-4 text-tiny text-muted">A leave day that is not approved counts as Absent in reports.</p>
+    <div class="relative overflow-x-auto rounded-xl border border-line"><table class="min-w-135">
+      <thead><tr><th>Date</th><th>Reason</th><th>Status</th><th class="w-0"></th></tr></thead>
+      <tbody>
+      <?php foreach ($leave as $r): $tone = ['approved' => 'green', 'pending' => 'amber', 'rejected' => 'red'][$r['status']] ?? 'gray'; ?>
+        <tr><td class="whitespace-nowrap font-semibold"><?= e((new DateTimeImmutable($r['leave_date']))->format(Account::df())) ?></td><td class="max-w-80 truncate"><?= e($r['comment']) ?></td>
+          <td><span class="tag tag-<?= $tone ?>"><?= e($r['status'] === 'approved' ? 'Leave approved' : ($r['status'] === 'pending' ? 'Pending' : 'Rejected · Absent')) ?></span></td>
+          <td><?php if ($r['status'] === 'pending'): ?><form method="post" action="<?= url('/requests/cancel') ?>" class="m-0"><?= csrf_field() ?><input type="hidden" name="id" value="<?= (int)$r['id'] ?>"><input type="hidden" name="back" value="/attendance"><button type="submit" class="btn h-8">Withdraw</button></form><?php endif; ?></td></tr>
+      <?php endforeach; ?>
+      </tbody></table></div>
+  </section>
+  <?php endif; ?>
+  <dialog id="leave-modal" class="modal-box" data-form-modal aria-labelledby="lv-m-title">
+    <form method="post" action="<?= url('/requests/leave') ?>" novalidate data-required="date,comment" data-defaults="<?= e(json_encode(['date' => $today->format('Y-m-d'), 'comment' => ''])) ?>">
+      <?= csrf_field() ?><input type="hidden" name="back" value="/attendance">
+      <div class="modal-head"><div class="flex h-10.5 w-10.5 shrink-0 items-center justify-center rounded-xl bg-soft text-brand"><?= icon('calendar', 20) ?></div><div class="flex-1"><h2 class="m-0 text-base" id="lv-m-title">Request leave</h2><p class="mt-1 mb-0 text-xs leading-copy text-muted">Ask for leave on a working day. An Owner, Admin or your manager approves it. Until then the day counts as Absent.</p></div><button type="button" class="icon-button border-transparent bg-transparent" data-modal-close aria-label="Close"><?= icon('close', 16) ?></button></div>
+      <div class="modal-body flex flex-col gap-3.5">
+        <div><label class="field-label" for="lv-date">Date <span class="text-danger">*</span></label><input class="field-input" id="lv-date" type="date" name="date" value="<?= e($today->format('Y-m-d')) ?>" min="<?= e($today->modify('-' . DaysOff::BACK_DAYS . ' days')->format('Y-m-d')) ?>" max="<?= e($today->modify('+' . DaysOff::AHEAD_DAYS . ' days')->format('Y-m-d')) ?>"></div>
+        <div><label class="field-label" for="lv-comment">Reason <span class="text-danger">*</span></label><textarea class="field-input" id="lv-comment" name="comment" maxlength="<?= DaysOff::COMMENT_MAX ?>" rows="3" placeholder="For example: family event"></textarea></div>
+      </div>
+      <div class="modal-foot"><button type="button" class="btn" data-modal-close>Cancel</button><button type="submit" class="btn btn-primary" data-m-submit>Send request</button></div>
+    </form>
+  </dialog>
+  <script src="<?= asset('js/krono-modals.js') ?>" defer></script>
 <?php endif; ?>
 </div>

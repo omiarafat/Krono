@@ -44,7 +44,7 @@ final class SettingsController {
     private static function page(string $key, array $u, array $extra = [], int $status = 200, ?string $view = null): void {
         $e = self::find($key); $uid = (int)$u['id']; $ws = Workspace::ensureFor($uid);
         $d = ['title' => 'Settings', 'user' => $u, 'nav' => 'settings', 'crumb' => 'Settings', 'crumburl' => '/settings', 'crumb2' => $e[0], 'tab' => $key, 'entry' => $e, 'menu' => self::menu(), 'ws' => $ws, 'wid' => (int)$ws['id'], 'tz' => Workspace::tz($ws)];
-        if ($key === 'profile') { $d['profile'] = Account::profile($uid); $d['pending'] = Account::pendingEmail($uid); $d['zones'] = Account::timezones(); $d['formats'] = array_keys(Account::DATE_FORMATS); }
+        if ($key === 'profile') { $d['own'] = $ws['role'] !== 'owner' ? ['days' => DaysOff::effective((int)$ws['id'], $uid), 'custom' => (DaysOff::ownMap((int)$ws['id'])[$uid] ?? null) !== null, 'default' => DaysOff::workspaceCsv((int)$ws['id']), 'pending' => DaysOff::pendingDays((int)$ws['id'], $uid)] : null; $d['profile'] = Account::profile($uid); $d['pending'] = Account::pendingEmail($uid); $d['zones'] = Account::timezones(); $d['formats'] = array_keys(Account::DATE_FORMATS); }
         if ($key === 'sessions') $d['sessions'] = Account::sessions($uid);
         if ($key === 'appearance') $d['prefs'] = Account::prefs($uid);
         if ($key === 'general') { $d['g'] = WsSettings::general((int)$ws['id']); $d['zones'] = Account::timezones(); }
@@ -185,7 +185,7 @@ final class SettingsController {
 
     static function saveGeneral(): void {
         [$u] = self::open('general'); $wid = (int)Workspace::ensureFor((int)$u['id'])['id'];
-        [$err, $clean] = WsSettings::checkGeneral($_POST);
+        [$err, $clean] = WsSettings::checkGeneral($_POST, Perm::me('workspace.daysoff'));
         if ($err) { self::page('general', $u, ['errors' => $err, 'form' => $clean], 422); return; }
         try { WsSettings::saveGeneral($wid, (int)$u['id'], $clean); }
         catch (Throwable $e) { error_log((string)$e); self::page('general', $u, ['errors' => ['_' => 'Your changes were not saved. Check your connection and try again. Your input has been kept.'], 'form' => $clean], 500); return; }

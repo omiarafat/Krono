@@ -27,6 +27,11 @@ $created = (new DateTimeImmutable($g['created_at'] . ' UTC'))->setTimezone($tz);
         <div><label class="field-label" for="ws-lang">Language</label>
           <select class="field-input" id="ws-lang" name="language"<?= $bad('language') ?>><?php foreach (WsSettings::LANGUAGES as $k => $l): ?><option value="<?= e($k) ?>"<?= $v['language'] === $k ? ' selected' : '' ?>><?= e($l) ?></option><?php endforeach; ?></select><?= $err('language') ?></div>
       </div>
+      <?php if (Perm::me('workspace.daysoff')): $pillName = 'days_off[]'; $pillId = 'ws-off'; $pillDays = DaysOff::listOf((string)($v['days_off'] ?? $g['days_off'])); ?>
+      <div class="mt-5"><div class="field-label" id="ws-off-label">Weekly days off</div>
+        <?php include ROOT . '/app/Views/partials/day-pills.php'; ?>
+        <p class="mt-2 mb-0 text-micro text-muted">Every member, manager and admin gets these days off by default. A person can ask to use their own days in Settings → Profile information; you approve it in Teams. The Owner always follows this setting.</p></div>
+      <?php endif; ?>
       <div class="mt-5 flex items-center justify-between gap-3 border-t border-line pt-4 max-sm:flex-col max-sm:items-stretch"><p class="m-0 text-micro text-muted">Changes affect how the workspace shows dates and times. Saved timestamps are not changed.</p>
         <button type="submit" class="btn btn-primary" data-save disabled>Save changes</button></div>
     </form>
