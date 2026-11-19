@@ -13,7 +13,7 @@ final class AttendanceController {
             if ($any) $list = Attendance::listing($people, $f, $tz);
         } catch (Throwable $e) { error_log((string)$e); $failed = true; }
         $f ??= Attendance::cleanFilters([], $tz, $people, $uid);
-        render('attendance/index', ['title' => 'Attendance', 'user' => $u, 'nav' => 'attendance', 'crumb' => 'Attendance', 'ws' => $ws, 'tz' => $tz, 'f' => $f, 'list' => $list, 'people' => $people, 'any' => $any, 'failed' => $failed, 'downloadUrl' => self::dl()], 'app');
+        render('attendance/index', ['title' => 'Attendance', 'user' => $u, 'nav' => 'attendance', 'crumb' => 'Attendance', 'ws' => $ws, 'tz' => $tz, 'f' => $f, 'list' => $list, 'people' => $people, 'any' => $any, 'failed' => $failed, 'downloadUrl' => self::dl(), 'canLeave' => $ws['role'] !== 'owner', 'leave' => $ws['role'] !== 'owner' ? DaysOff::myLeave((int)$ws['id'], $uid) : []], 'app');
     }
 
     /** /attendance/details?id=N (one session) or ?user=N&date=Y-m-d (that person's first session that day). */
