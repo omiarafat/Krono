@@ -322,3 +322,23 @@ CREATE TABLE IF NOT EXISTS workspace_roles (
   CONSTRAINT fk_wr_ws FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+
+-- Days off and requests that need approval: a change of a person's weekly days off ("days_off") or leave on one working day ("leave", with a comment).
+-- status: pending -> approved / rejected. Approved days_off is copied to workspace_members.days_off; an unapproved leave day counts as Absent in reports.
+CREATE TABLE IF NOT EXISTS day_requests (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  workspace_id BIGINT UNSIGNED NOT NULL,
+  user_id BIGINT UNSIGNED NOT NULL,
+  kind VARCHAR(10) NOT NULL,
+  leave_date DATE NULL,
+  days_off VARCHAR(30) NULL,
+  comment VARCHAR(500) NULL,
+  status VARCHAR(10) NOT NULL DEFAULT 'pending',
+  decided_by BIGINT UNSIGNED NULL,
+  decided_at DATETIME NULL,
+  created_at DATETIME NOT NULL,
+  KEY idx_dr_ws_status (workspace_id, status),
+  KEY idx_dr_user_date (user_id, leave_date),
+  CONSTRAINT fk_dr_ws FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE,
+  CONSTRAINT fk_dr_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

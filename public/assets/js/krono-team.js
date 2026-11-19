@@ -77,6 +77,23 @@
 
   /* ---- drawer ---- */
   function put(k, v) { var el = $('[data-d="' + k + '"]', drawer); if (el) el.textContent = v; }
+  /* waiting requests with Approve / Reject (only the ones this person may decide come from the server) */
+  function requests(m) {
+    var box = $('[data-d-requests]', drawer), list = $('[data-d-request-list]', drawer), tpl = $('#request-form-tpl'), rs = m.requests || [];
+    list.innerHTML = ''; box.classList.toggle('hidden', !rs.length); if (!rs.length || !tpl) return;
+    rs.forEach(function (r) {
+      var card = document.createElement('div'); card.className = 'rounded-xl border border-line bg-page px-3.5 py-3 text-tiny';
+      var h = document.createElement('div'); h.className = 'font-bold'; h.textContent = r.title; card.appendChild(h);
+      var t = document.createElement('p'); t.className = 'm-0 mt-1 leading-copy text-muted'; t.textContent = r.text; card.appendChild(t);
+      var w = document.createElement('div'); w.className = 'mt-1 text-micro text-muted'; w.textContent = 'Asked ' + r.when; card.appendChild(w);
+      var row = document.createElement('div'); row.className = 'mt-2.5 flex gap-2';
+      [['approve', 'Approve', 'btn btn-primary h-9'], ['reject', 'Reject', 'btn h-9']].forEach(function (a) {
+        var f = tpl.content.firstElementChild.cloneNode(true); f.elements.id.value = r.id; f.elements.do.value = a[0];
+        var b = document.createElement('button'); b.type = 'submit'; b.className = a[2]; b.textContent = a[1]; f.appendChild(b); row.appendChild(f);
+      });
+      card.appendChild(row); list.appendChild(card);
+    });
+  }
   function openDrawer(m) {
     if (!drawer) return;
     var ini = m.name.split(/\s+/).filter(Boolean).slice(0, 2).map(function (x) { return x[0]; }).join('').toUpperCase();
@@ -85,6 +102,9 @@
     $('[data-d="status"]', drawer).innerHTML = '<span class="tag tag-' + tone + '">' + m.status.charAt(0).toUpperCase() + m.status.slice(1) + '</span>';
     put('role', m.role_name || m.role_label); put('manager', m.manager || '—'); put('reports', m.role === 'manager' ? String(m.reports) : '—');
     put('joined', m.kind === 'invite' ? 'Not yet' : m.joined_label); put('last', m.kind === 'invite' ? '—' : m.last_label);
+    put('daysoff', m.kind === 'invite' ? '—' : (m.days_off || '—') + (m.days_custom ? ' (own)' : ''));
+    $('[data-d="daysoff"]', drawer).parentNode.hidden = m.kind === 'invite';
+    requests(m);
     var ex = $('[data-d="extra"]', drawer).parentNode; ex.hidden = m.kind !== 'invite';
     if (m.kind === 'invite') put('extra', 'Sent ' + m.joined_label + ' · expires ' + m.expires_label);
     var notes = JSON.parse(drawer.dataset.notes || '{}'); put('note', notes[m.role_token || m.role] || '');

@@ -59,13 +59,13 @@ $now = new DateTimeImmutable('now', $tz);
         <p class="mt-1.5 mb-0 text-micro text-muted">We will send a code to the new address. Your current email stays active until you confirm it.</p>
       </div>
     </div>
-    <?php $own = (string)($profile['timezone'] ?? '') !== ''; ?>
+    <?php $hasOwnTimezone = (string)($profile['timezone'] ?? '') !== ''; ?>
     <aside class="mt-5 rounded-card border border-brand/25 bg-soft p-4.5" aria-labelledby="tz-note">
       <div class="flex items-start gap-3">
         <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-surface text-brand"><?= icon('globe', 18) ?></span>
         <div class="min-w-0">
           <h3 class="m-0 text-xs" id="tz-note">How timezone and date format work</h3>
-          <p class="mt-1 mb-0 text-tiny leading-copy text-muted">Right now Krono shows your times in <strong class="text-ink"><?= e($tz->getName()) ?></strong> (<?= $own ? 'your own choice' : 'the workspace timezone' ?>). It is <strong class="text-ink"><?= e($now->format(Account::tf() . ', ' . Account::df())) ?></strong> for you.</p>
+          <p class="mt-1 mb-0 text-tiny leading-copy text-muted">Right now Krono shows your times in <strong class="text-ink"><?= e($tz->getName()) ?></strong> (<?= $hasOwnTimezone ? 'your own choice' : 'the workspace timezone' ?>). It is <strong class="text-ink"><?= e($now->format(Account::tf() . ', ' . Account::df())) ?></strong> for you.</p>
           <ul class="mt-2.5 mb-0 flex list-none flex-col gap-1.5 p-0 text-tiny leading-copy text-muted">
             <li class="flex gap-2"><span class="text-brand"><?= icon('check', 13) ?></span><span><strong class="text-ink">Only your screen changes.</strong> Saved work, attendance and time logs are never changed.</span></li>
             <li class="flex gap-2"><span class="text-brand"><?= icon('check', 13) ?></span><span><strong class="text-ink">Want to see the same times as your team?</strong> Keep "Use the workspace timezone".</span></li>
@@ -77,4 +77,21 @@ $now = new DateTimeImmutable('now', $tz);
     <div class="mt-5 flex justify-end"><?= $save ?></div>
   </form>
 </section>
+<?php if (!empty($own)): $pillName = 'days_off[]'; $pillId = 'me-off'; $pillDays = DaysOff::listOf($own['days']); $pend = $own['pending']; ?>
+<section class="panel-card mt-4.5 p-5.5 max-sm:p-4" aria-labelledby="do-title">
+  <h2 class="m-0 text-base" id="do-title">Weekly days off</h2>
+  <p class="mt-1 mb-4 text-xs text-muted">Your days off follow the workspace (<?= e(DaysOff::label($own['default'])) ?>) unless you ask for your own. A change needs approval from an Owner, an Admin or your manager.</p>
+  <?php if ($pend): ?>
+    <div class="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-tag-amber/40 bg-tag-amber/10 px-3.5 py-3 text-tiny">
+      <span><strong>Waiting for approval:</strong> <?= e(DaysOff::label((string)$pend['days_off'])) ?>. Your current days off stay until it is approved.</span>
+      <form method="post" action="<?= url('/requests/cancel') ?>" class="m-0"><?= csrf_field() ?><input type="hidden" name="id" value="<?= (int)$pend['id'] ?>"><input type="hidden" name="back" value="/settings/profile"><button type="submit" class="btn h-9">Withdraw request</button></form>
+    </div>
+  <?php endif; ?>
+  <form method="post" action="<?= url('/requests/days') ?>" novalidate><?= csrf_field() ?>
+    <div class="field-label">Your days off <span class="font-normal text-muted">· <?= $own['custom'] ? 'your own choice' : 'workspace default' ?></span></div>
+    <?php include ROOT . '/app/Views/partials/day-pills.php'; ?>
+    <div class="mt-4 flex justify-end"><button type="submit" class="btn btn-primary">Send for approval</button></div>
+  </form>
+</section>
+<?php endif; ?>
 <?php include __DIR__ . '/_end.php'; ?>
