@@ -18,12 +18,12 @@ $muted = 'text-tiny text-muted'; $label = 'text-micro text-muted';
     <?php if ($canManage): ?>
     <div class="flex shrink-0 items-center gap-2.5">
       <button type="button" class="btn" <?= $editBtn ?>><?= icon('settings', 16) ?> Edit Project</button>
-      <details class="relative" data-menu>
+      <?php if ($canArchive): ?><details class="relative" data-menu>
         <summary class="btn list-none px-3.5 [&::-webkit-details-marker]:hidden" aria-label="More project actions"><?= icon('more', 18) ?></summary>
         <div class="absolute top-full right-0 z-20 mt-1 w-48 rounded-xl border border-line bg-surface p-1.5 shadow-modal">
           <button type="button" class="menu-item text-danger" <?= $archiveBtn ?>>Archive project</button>
         </div>
-      </details>
+      </details><?php endif; ?>
     </div>
     <?php endif; ?>
   </div>

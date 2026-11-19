@@ -2,9 +2,9 @@
 /**
  * Projects (list, create, edit, archive). One place for the rules, used by the website now and the app API later.
  *
- *  - Who sees what : Owner / Admin / Manager see every project of the workspace.
- *                    Member / Viewer see only projects they created, lead or were added to.
- *  - Who may change: Owner / Admin / Manager create, edit and archive. Member / Viewer are read-only.
+ *  - Who sees what : needs projects.view. Data scope "team" / "all" (Owner, Admin, Manager) see every project of the workspace;
+ *                    scope "own" (Member, Viewer) sees only projects they created, lead or were added to.
+ *  - Who may change: projects.edit creates and edits, projects.archive archives (see Perm).
  *  - Progress      : completed tasks / all tasks of the project (no tasks = 0%). Same rule as the Dashboard.
  *  - Logged time   : sum of saved time logs (task_time_logs) of the project, every user.
  *  - Archive       : hides the project from active lists. Tasks and time logs are kept. Nothing is ever deleted.
@@ -15,14 +15,15 @@ final class Project {
     const SORT = ['updated' => 'Recently updated', 'newest' => 'Newest first', 'name' => 'Name A–Z', 'due' => 'Due date'];
     const PER_PAGE = 8;
 
-    static function canManage(array $ws): bool { return Workspace::atLeast($ws['role'], 'manager'); }
+    static function canManage(array $ws): bool { return Perm::can($ws, 'projects.edit'); }
+    static function canArchive(array $ws): bool { return Perm::can($ws, 'projects.archive'); }
 
     private static function utcNow(): string { return gmdate('Y-m-d H:i:s'); }
 
     /** SQL (alias p) for "projects this person can see" + bound values. */
     static function visible(int $uid, array $ws): array {
         $sql = 'p.workspace_id = ?'; $v = [(int)$ws['id']];
-        if (!self::canManage($ws)) { $sql .= ' AND (p.created_by = ? OR p.leader_id = ? OR EXISTS (SELECT 1 FROM project_members pm WHERE pm.project_id = p.id AND pm.user_id = ?))'; array_push($v, $uid, $uid, $uid); }
+        if (Perm::scope($ws) === 'own') { $sql .= ' AND (p.created_by = ? OR p.leader_id = ? OR EXISTS (SELECT 1 FROM project_members pm WHERE pm.project_id = p.id AND pm.user_id = ?))'; array_push($v, $uid, $uid, $uid); }
         return [$sql, $v];
     }
 

@@ -1,8 +1,10 @@
 <?php
 /**
  * Teams: members, roles, direct-manager relationships and invitations.
- *  - Owner / Admin manage everything (an Admin cannot touch another Admin or the Owner; nobody changes the Owner or themselves).
- *  - A Manager sees only themselves + their DIRECT reports (read-only). Member / Viewer have no access to the page.
+ *  - What a person may do comes from Perm: team.view opens the page, team.invite / team.roles / team.deactivate allow the matching changes.
+ *    Nobody changes the Owner or themselves, and nobody changes (or creates) someone of the same or a higher rank.
+ *  - Data scope "all" sees the whole roster; "team" / "own" see only themselves + their DIRECT reports (read-only).
+ *  - A role is either built-in (owner..viewer) or a custom role (token "c12"). A person's `role` column always holds the BASE role, `custom_role_id` the custom one.
  *  - A person has zero or one direct manager. Only Members and Viewers report to a manager (managers are role "manager").
  *  - Changing a role / manager / status changes ONLY access: projects, attendance and time logs are never touched. Nothing is hard-deleted.
  *  - Every change is written to audit_log (actor, target, action, time). Invitation tokens are stored as SHA-256 hashes only.
@@ -13,19 +15,42 @@ final class Team {
     const ROLE_LABEL = ['owner' => 'Owner', 'admin' => 'Admin', 'manager' => 'Manager', 'member' => 'Member', 'viewer' => 'Viewer'];
     const REPORTING = ['member', 'viewer'];   // the roles that can have a direct manager
 
-    static function canManage(array $ws): bool { return Workspace::atLeast($ws['role'], 'admin'); }
-    static function canView(array $ws): bool { return Workspace::atLeast($ws['role'], 'manager'); }
+    static function canView(array $ws): bool { return Perm::can($ws, 'team.view'); }
+    /** True when the person may change anything on the page (invite, change roles, deactivate). */
+    static function canManage(array $ws): bool { return Perm::can($ws, 'team.invite') || Perm::can($ws, 'team.roles') || Perm::can($ws, 'team.deactivate'); }
 
-    /** Roles the viewer may give: Owner -> Admin..Viewer, Admin -> Manager..Viewer. @return array<string,string> */
+    /** Roles the viewer may give, as token => label. Built-in roles ranked below the viewer, then custom roles whose base rank is below the viewer's
+     *  and whose permissions the viewer has all of (nobody can hand out more than they hold). Tokens: "admin" ... "viewer", "c12" for a custom role. */
     static function assignableRoles(array $ws): array {
-        $out = [];
-        foreach (['admin', 'manager', 'member', 'viewer'] as $r) if (Workspace::ROLES[$r] < Workspace::ROLES[$ws['role']]) $out[$r] = self::ROLE_LABEL[$r];
+        $out = []; $mine = Perm::set($ws); $rank = Workspace::ROLES[$ws['role']] ?? 0;
+        foreach (['admin', 'manager', 'member', 'viewer'] as $r) if (Workspace::ROLES[$r] < $rank) $out[$r] = self::ROLE_LABEL[$r];
+        foreach (Perm::customRoles((int)$ws['id']) as $c)
+            if (Workspace::ROLES[$c['base']] < $rank && !array_diff($c['permissions'], $mine)) $out['c' . $c['id']] = $c['name'];
         return $out;
     }
 
-    /** May the viewer change this person's role / manager / status? (never the Owner, never themselves, an Admin only below Admin) */
-    static function canActOn(array $ws, int $actor, string $targetRole, int $targetId): bool {
-        return self::canManage($ws) && $targetId !== $actor && $targetRole !== 'owner' && Workspace::ROLES[$targetRole] < Workspace::ROLES[$ws['role']];
+    /** The base built-in role behind a token ("c12" -> its scope's base role, "viewer" -> "viewer"). */
+    static function baseOf(array $ws, string $token): string {
+        if ($token !== '' && $token[0] === 'c' && ctype_digit(substr($token, 1))) return Perm::custom((int)$ws['id'], (int)substr($token, 1))['base'] ?? 'member';
+        return $token;
+    }
+
+    /** Every role a filter may pick: token => label (built-in, then the workspace's custom roles). */
+    static function filterRoles(array $ws): array {
+        $o = self::ROLE_LABEL; foreach (Perm::customRoles((int)$ws['id']) as $c) $o['c' . $c['id']] = $c['name'];
+        return $o;
+    }
+
+    /** A token from assignableRoles() as [base role, custom role id or null, label], or null when the viewer may not give it. */
+    static function resolveRole(array $ws, string $token): ?array {
+        $ok = self::assignableRoles($ws); if (!isset($ok[$token])) return null;
+        if ($token[0] === 'c' && ctype_digit(substr($token, 1))) { $c = Perm::custom((int)$ws['id'], (int)substr($token, 1)); return $c ? [$c['base'], $c['id'], $c['name']] : null; }
+        return [$token, null, $ok[$token]];
+    }
+
+    /** May the viewer change this person's role / manager / status with permission $perm? (never the Owner, never themselves, only below their own rank) */
+    static function canActOn(array $ws, int $actor, string $targetRole, int $targetId, string $perm): bool {
+        return Perm::can($ws, $perm) && $targetId !== $actor && $targetRole !== 'owner' && Workspace::ROLES[$targetRole] < Workspace::ROLES[$ws['role']];
     }
 
     private static function now(): string { return gmdate('Y-m-d H:i:s'); }
@@ -35,13 +60,13 @@ final class Team {
 
     /** Every membership row of the workspace (active + deactivated). */
     private static function memberRows(int $wid): array {
-        return Db::q('SELECT u.id user_id, u.name, u.email, m.role, m.manager_id, m.status, m.created_at joined, mg.name manager
-            FROM workspace_members m JOIN users u ON u.id = m.user_id LEFT JOIN users mg ON mg.id = m.manager_id WHERE m.workspace_id = ?', [$wid])->fetchAll();
+        return Db::q('SELECT u.id user_id, u.name, u.email, m.role, m.custom_role_id, cr.name custom_name, m.manager_id, m.status, m.created_at joined, mg.name manager
+            FROM workspace_members m JOIN users u ON u.id = m.user_id LEFT JOIN users mg ON mg.id = m.manager_id LEFT JOIN workspace_roles cr ON cr.id = m.custom_role_id AND cr.workspace_id = m.workspace_id WHERE m.workspace_id = ?', [$wid])->fetchAll();
     }
 
     private static function inviteRows(int $wid): array {
-        return Db::q("SELECT i.id, i.email, i.role, i.manager_id, i.created_at, i.expires_at, mg.name manager, ib.name invited_by
-            FROM workspace_invitations i LEFT JOIN users mg ON mg.id = i.manager_id LEFT JOIN users ib ON ib.id = i.invited_by
+        return Db::q("SELECT i.id, i.email, i.role, i.custom_role_id, cr.name custom_name, i.manager_id, i.created_at, i.expires_at, mg.name manager, ib.name invited_by
+            FROM workspace_invitations i LEFT JOIN users mg ON mg.id = i.manager_id LEFT JOIN users ib ON ib.id = i.invited_by LEFT JOIN workspace_roles cr ON cr.id = i.custom_role_id AND cr.workspace_id = i.workspace_id
             WHERE i.workspace_id = ? AND i.status = 'pending' AND i.expires_at > ? ORDER BY i.id DESC", [$wid, self::now()])->fetchAll();
     }
 
@@ -57,23 +82,24 @@ final class Team {
 
     /** Everyone the viewer may see, with display fields and what the viewer may do. Order: Owner, Admin, Manager, Member, Viewer, then A-Z. */
     static function roster(array $ws, int $uid): array {
-        $wid = (int)$ws['id']; $rows = self::memberRows($wid); $manage = self::canManage($ws);
+        $wid = (int)$ws['id']; $rows = self::memberRows($wid); $manage = self::canManage($ws); $whole = Perm::scope($ws) === 'all';
         $reports = []; foreach ($rows as $r) if ($r['status'] === 'active' && $r['manager_id']) $reports[(int)$r['manager_id']] = ($reports[(int)$r['manager_id']] ?? 0) + 1;
-        if (!$manage) $rows = array_values(array_filter($rows, fn($r) => (int)$r['user_id'] === $uid || (int)$r['manager_id'] === $uid));
+        if (!$whole) $rows = array_values(array_filter($rows, fn($r) => (int)$r['user_id'] === $uid || (int)$r['manager_id'] === $uid));
         $last = self::lastActive(array_map(fn($r) => (int)$r['user_id'], $rows)); $out = [];
         foreach ($rows as $r) {
-            $id = (int)$r['user_id']; $act = $r['status'] === 'active' && self::canActOn($ws, $uid, $r['role'], $id);
-            $out[] = ['kind' => 'member', 'id' => $id, 'user_id' => $id, 'name' => $r['name'], 'email' => $r['email'], 'role' => $r['role'], 'manager_id' => $r['manager_id'] ? (int)$r['manager_id'] : 0, 'manager' => $r['manager'],
+            $id = (int)$r['user_id']; $cid = (int)($r['custom_role_id'] ?? 0); $act = fn(string $perm) => $r['status'] === 'active' && self::canActOn($ws, $uid, $r['role'], $id, $perm);
+            $out[] = ['kind' => 'member', 'id' => $id, 'user_id' => $id, 'name' => $r['name'], 'email' => $r['email'], 'role' => $r['role'], 'custom_role_id' => $cid, 'role_token' => $cid && $r['custom_name'] ? 'c' . $cid : $r['role'], 'role_name' => Perm::label($r['role'], $cid, $r['custom_name']), 'manager_id' => $r['manager_id'] ? (int)$r['manager_id'] : 0, 'manager' => $r['manager'],
                 'status' => $r['status'], 'joined' => $r['joined'], 'last' => $last[$id] ?? null, 'reports' => $reports[$id] ?? 0, 'self' => $id === $uid,
-                'can' => ['role' => $act, 'manager' => $act && in_array($r['role'], self::REPORTING, true), 'deactivate' => $act,
-                          'reactivate' => $r['status'] === 'deactivated' && self::canActOn($ws, $uid, $r['role'], $id)]];
+                'can' => ['role' => $act('team.roles'), 'manager' => $act('team.roles') && in_array($r['role'], self::REPORTING, true), 'deactivate' => $act('team.deactivate'),
+                          'reactivate' => $r['status'] === 'deactivated' && self::canActOn($ws, $uid, $r['role'], $id, 'team.deactivate')]];
         }
-        if ($manage) foreach (self::inviteRows($wid) as $i) {
-            $out[] = ['kind' => 'invite', 'id' => (int)$i['id'], 'user_id' => 0, 'name' => ucfirst((string)strtok($i['email'], '@')), 'email' => $i['email'], 'role' => $i['role'], 'manager_id' => $i['manager_id'] ? (int)$i['manager_id'] : 0, 'manager' => $i['manager'],
+        if ($whole || Perm::can($ws, 'team.invite')) foreach (self::inviteRows($wid) as $i) {
+            $icid = (int)($i['custom_role_id'] ?? 0);
+            $out[] = ['kind' => 'invite', 'id' => (int)$i['id'], 'user_id' => 0, 'name' => ucfirst((string)strtok($i['email'], '@')), 'email' => $i['email'], 'role' => $i['role'], 'custom_role_id' => $icid, 'role_token' => $icid && $i['custom_name'] ? 'c' . $icid : $i['role'], 'role_name' => Perm::label($i['role'], $icid, $i['custom_name']), 'manager_id' => $i['manager_id'] ? (int)$i['manager_id'] : 0, 'manager' => $i['manager'],
                 'status' => 'invited', 'joined' => $i['created_at'], 'last' => null, 'reports' => 0, 'self' => false, 'invited_by' => $i['invited_by'], 'expires' => $i['expires_at'],
-                'can' => ['role' => false, 'manager' => false, 'deactivate' => false, 'reactivate' => false, 'invite' => Workspace::ROLES[$i['role']] < Workspace::ROLES[$ws['role']]]];
+                'can' => ['role' => false, 'manager' => false, 'deactivate' => false, 'reactivate' => false, 'invite' => Perm::can($ws, 'team.invite') && Workspace::ROLES[$i['role']] < Workspace::ROLES[$ws['role']]]];
         }
-        usort($out, fn($a, $b) => [-Workspace::ROLES[$a['role']], mb_strtolower($a['name'])] <=> [-Workspace::ROLES[$b['role']], mb_strtolower($b['name'])]);
+        usort($out, fn($a, $b) => [-Workspace::ROLES[$a['role']], $a['custom_role_id'] ? 1 : 0, mb_strtolower($a['name'])] <=> [-Workspace::ROLES[$b['role']], $b['custom_role_id'] ? 1 : 0, mb_strtolower($b['name'])]);
         return $out;
     }
 
@@ -93,7 +119,7 @@ final class Team {
     /** Filters from the address bar. @return array{q:string,role:string,status:string,manager:string,page:int,tab:string} */
     static function cleanFilters(array $q): array {
         $role = (string)($q['role'] ?? ''); $st = (string)($q['status'] ?? ''); $mg = (string)($q['manager'] ?? '');
-        return ['q' => mb_substr(trim((string)($q['q'] ?? '')), 0, 100), 'role' => isset(self::ROLE_LABEL[$role]) ? $role : '', 'status' => in_array($st, ['active', 'invited', 'deactivated'], true) ? $st : '',
+        return ['q' => mb_substr(trim((string)($q['q'] ?? '')), 0, 100), 'role' => isset(self::ROLE_LABEL[$role]) || preg_match('/^c\d{1,9}$/', $role) ? $role : '', 'status' => in_array($st, ['active', 'invited', 'deactivated'], true) ? $st : '',
             'manager' => $mg === 'none' || ctype_digit($mg) ? $mg : '', 'page' => max(1, (int)($q['page'] ?? 1)), 'tab' => ($q['tab'] ?? '') === 'structure' ? 'structure' : 'members'];
     }
 
@@ -112,7 +138,7 @@ final class Team {
         $q = mb_strtolower($f['q']);
         $rows = array_values(array_filter($roster, function ($r) use ($f, $q) {
             if ($q !== '' && !str_contains(mb_strtolower($r['name']), $q) && !str_contains(mb_strtolower($r['email']), $q)) return false;
-            if ($f['role'] !== '' && $r['role'] !== $f['role']) return false;
+            if ($f['role'] !== '' && $r['role_token'] !== $f['role']) return false;
             if ($f['status'] !== '' && $r['status'] !== $f['status']) return false;
             if ($f['manager'] === 'none') return !$r['manager_id'];
             if ($f['manager'] !== '' && $r['manager_id'] !== (int)$f['manager']) return false;
@@ -168,7 +194,7 @@ final class Team {
     // ---------- changes (each returns '' on success or a message the person can read) ----------
 
     private static function member(int $wid, int $uid): ?array {
-        return Db::q('SELECT u.id, u.name, u.email, m.role, m.status, m.manager_id FROM workspace_members m JOIN users u ON u.id = m.user_id WHERE m.workspace_id = ? AND m.user_id = ?', [$wid, $uid])->fetch() ?: null;
+        return Db::q('SELECT u.id, u.name, u.email, m.role, m.custom_role_id, m.status, m.manager_id FROM workspace_members m JOIN users u ON u.id = m.user_id WHERE m.workspace_id = ? AND m.user_id = ?', [$wid, $uid])->fetch() ?: null;
     }
     private static function directReports(int $wid, int $managerId): int {
         return (int)Db::q("SELECT COUNT(*) FROM workspace_members WHERE workspace_id = ? AND manager_id = ? AND status = 'active'", [$wid, $managerId])->fetchColumn();
@@ -185,17 +211,18 @@ final class Team {
     }
 
     /** Sends the invitation e-mail. Throws when the mail could not be accepted for delivery. */
-    private static function mail(array $ws, string $inviter, string $email, string $role, string $token): void {
+    private static function mail(array $ws, string $inviter, string $email, string $roleLabel, string $token): void {
         $link = url('/invite?token=' . $token);
-        Mailer::send($email, 'You are invited to ' . $ws['name'] . ' on Krono', "$inviter invited you to join the workspace \"{$ws['name']}\" on Krono as " . strtolower(self::ROLE_LABEL[$role]) . ".\nAccept the invitation: $link\nThis link works for " . self::INVITE_DAYS . ' days and only for ' . $email . '.');
+        Mailer::send($email, 'You are invited to ' . $ws['name'] . ' on Krono', "$inviter invited you to join the workspace \"{$ws['name']}\" on Krono as " . $roleLabel . ".\nAccept the invitation: $link\nThis link works for " . self::INVITE_DAYS . ' days and only for ' . $email . '.');
     }
 
     static function invite(array $ws, array $actor, string $email, string $role, int $managerId): array {
         $errors = []; $email = mb_strtolower(trim($email)); $wid = (int)$ws['id'];
-        if (!self::canManage($ws)) return [['email' => 'You do not have permission to invite members.'], false];
+        if (!Perm::can($ws, 'team.invite')) return [['email' => 'You do not have permission to invite members.'], false];
+        $pick = self::resolveRole($ws, $role); $base = $pick[0] ?? '';
         if ($email === '' || mb_strlen($email) > 190 || !filter_var($email, FILTER_VALIDATE_EMAIL)) $errors['email'] = 'Enter a valid email address.';
-        if (!isset(self::assignableRoles($ws)[$role])) $errors['role'] = 'Choose a role you are allowed to give.';
-        if ($managerId && (!in_array($role, self::REPORTING, true) || !self::activeManager($wid, $managerId))) $errors['manager_id'] = in_array($role, self::REPORTING, true) ? 'Choose an active manager from the list.' : 'Only members and viewers report to a manager.';
+        if (!$pick) $errors['role'] = 'Choose a role you are allowed to give.';
+        if ($managerId && (!in_array($base, self::REPORTING, true) || !self::activeManager($wid, $managerId))) $errors['manager_id'] = in_array($base, self::REPORTING, true) ? 'Choose an active manager from the list.' : 'Only members and viewers report to a manager.';
         if (!$errors) {
             $u = Db::q('SELECT id FROM users WHERE email = ?', [$email])->fetchColumn();
             $m = $u ? self::member($wid, (int)$u) : null;
@@ -204,21 +231,21 @@ final class Team {
         }
         if ($errors) return [$errors, false];
         $token = bin2hex(random_bytes(32));
-        try { self::mail($ws, (string)$actor['name'], $email, $role, $token); } catch (Throwable $e) { error_log((string)$e); return [[], true]; }   // second value: the e-mail could not be sent
-        Db::q('INSERT INTO workspace_invitations (workspace_id, email, role, manager_id, token_hash, invited_by, expires_at, created_at) VALUES (?,?,?,?,?,?,?,?)',
-            [$wid, $email, $role, $managerId ?: null, self::sha($token), (int)$actor['id'], gmdate('Y-m-d H:i:s', time() + self::INVITE_DAYS * 86400), self::now()]);
-        self::audit($wid, (int)$actor['id'], null, 'invite_sent', "$email as $role");
+        try { self::mail($ws, (string)$actor['name'], $email, $pick[2], $token); } catch (Throwable $e) { error_log((string)$e); return [[], true]; }   // second value: the e-mail could not be sent
+        Db::q('INSERT INTO workspace_invitations (workspace_id, email, role, custom_role_id, manager_id, token_hash, invited_by, expires_at, created_at) VALUES (?,?,?,?,?,?,?,?,?)',
+            [$wid, $email, $base, $pick[1], $managerId ?: null, self::sha($token), (int)$actor['id'], gmdate('Y-m-d H:i:s', time() + self::INVITE_DAYS * 86400), self::now()]);
+        self::audit($wid, (int)$actor['id'], null, 'invite_sent', "$email as {$pick[2]}");
         return [[], false];
     }
 
     /** "resend" | "cancel" a pending invitation. */
     static function invitation(array $ws, array $actor, int $id, string $do): string {
-        if (!self::canManage($ws)) return 'You do not have permission to do that.';
-        $wid = (int)$ws['id']; $i = Db::q("SELECT * FROM workspace_invitations WHERE id = ? AND workspace_id = ? AND status = 'pending'", [$id, $wid])->fetch();
+        if (!Perm::can($ws, 'team.invite')) return 'You do not have permission to do that.';
+        $wid = (int)$ws['id']; $i = Db::q("SELECT i.*, cr.name custom_name FROM workspace_invitations i LEFT JOIN workspace_roles cr ON cr.id = i.custom_role_id AND cr.workspace_id = i.workspace_id WHERE i.id = ? AND i.workspace_id = ? AND i.status = 'pending'", [$id, $wid])->fetch();
         if (!$i || Workspace::ROLES[$i['role']] >= Workspace::ROLES[$ws['role']]) return 'That invitation is not available.';
         if ($do === 'cancel') { Db::q("UPDATE workspace_invitations SET status = 'cancelled' WHERE id = ?", [$id]); self::audit($wid, (int)$actor['id'], null, 'invite_cancelled', $i['email']); return ''; }
         $token = bin2hex(random_bytes(32));
-        try { self::mail($ws, (string)$actor['name'], $i['email'], $i['role'], $token); } catch (Throwable $e) { error_log((string)$e); return 'Could not send the invitation. Try again.'; }
+        try { self::mail($ws, (string)$actor['name'], $i['email'], Perm::label($i['role'], $i['custom_role_id'], $i['custom_name']), $token); } catch (Throwable $e) { error_log((string)$e); return 'Could not send the invitation. Try again.'; }
         Db::q('UPDATE workspace_invitations SET token_hash = ?, expires_at = ? WHERE id = ?', [self::sha($token), gmdate('Y-m-d H:i:s', time() + self::INVITE_DAYS * 86400), $id]);
         self::audit($wid, (int)$actor['id'], null, 'invite_resent', $i['email']);
         return '';
@@ -226,16 +253,18 @@ final class Team {
 
     static function setRole(array $ws, int $actor, int $target, string $role, string $choice): string {
         $wid = (int)$ws['id']; $m = self::member($wid, $target);
-        if (!$m || $m['status'] !== 'active' || !self::canActOn($ws, $actor, $m['role'], $target)) return 'That member is not available.';
-        if (!isset(self::assignableRoles($ws)[$role])) return 'Choose a role you are allowed to give.';
-        if ($role === $m['role']) return 'That is already their role.';
+        if (!$m || $m['status'] !== 'active' || !self::canActOn($ws, $actor, $m['role'], $target, 'team.roles')) return 'That member is not available.';
+        $pick = self::resolveRole($ws, $role); if (!$pick) return 'Choose a role you are allowed to give.';
+        [$role, $customId, $label] = $pick; $oldId = (int)($m['custom_role_id'] ?? 0);
+        if ($role === $m['role'] && (int)$customId === $oldId) return 'That is already their role.';
+        $oldLabel = Perm::label($m['role'], $oldId, $oldId ? (Perm::custom($wid, $oldId)['name'] ?? null) : null);
         $move = 0;
         if ($m['role'] === 'manager' && $role !== 'manager' && self::directReports($wid, $target)) { [$e, $move] = self::reportsChoice($wid, $target, $choice); if ($e) return $e; }
         $pdo = Db::pdo(); $pdo->beginTransaction();
         try {
             if ($m['role'] === 'manager' && $role !== 'manager') Db::q("UPDATE workspace_members SET manager_id = ? WHERE workspace_id = ? AND manager_id = ?", [$move ?: null, $wid, $target]);
-            Db::q('UPDATE workspace_members SET role = ?' . (in_array($role, self::REPORTING, true) ? '' : ', manager_id = NULL') . ' WHERE workspace_id = ? AND user_id = ?', [$role, $wid, $target]);
-            self::audit($wid, $actor, $target, 'role_changed', $m['role'] . ' -> ' . $role); $pdo->commit();
+            Db::q('UPDATE workspace_members SET role = ?, custom_role_id = ?' . (in_array($role, self::REPORTING, true) ? '' : ', manager_id = NULL') . ' WHERE workspace_id = ? AND user_id = ?', [$role, $customId, $wid, $target]);
+            self::audit($wid, $actor, $target, 'role_changed', $oldLabel . ' -> ' . $label); $pdo->commit();
         } catch (Throwable $e) { if ($pdo->inTransaction()) $pdo->rollBack(); error_log((string)$e); return 'Could not save the change. Try again.'; }
         return '';
     }
@@ -243,7 +272,7 @@ final class Team {
     /** $manager = 0 removes the direct manager. */
     static function setManager(array $ws, int $actor, int $target, int $manager): string {
         $wid = (int)$ws['id']; $m = self::member($wid, $target);
-        if (!$m || $m['status'] !== 'active' || !in_array($m['role'], self::REPORTING, true) || !self::canActOn($ws, $actor, $m['role'], $target)) return 'Only active members and viewers can be assigned to a manager.';
+        if (!$m || $m['status'] !== 'active' || !in_array($m['role'], self::REPORTING, true) || !self::canActOn($ws, $actor, $m['role'], $target, 'team.roles')) return 'Only active members and viewers can be assigned to a manager.';
         if ($manager && ($manager === $target || !self::activeManager($wid, $manager))) return 'Choose an active manager from the list.';
         if ((int)$m['manager_id'] === $manager) return 'They already report to that manager.';
         try { Db::q('UPDATE workspace_members SET manager_id = ? WHERE workspace_id = ? AND user_id = ?', [$manager ?: null, $wid, $target]); } catch (Throwable $e) { error_log((string)$e); return 'Could not save the change. Try again.'; }
@@ -254,7 +283,7 @@ final class Team {
     /** "deactivate" | "reactivate". A manager with direct reports needs $choice (see reportsChoice). */
     static function setStatus(array $ws, int $actor, int $target, string $do, string $choice): string {
         $wid = (int)$ws['id']; $m = self::member($wid, $target);
-        if (!$m || !self::canActOn($ws, $actor, $m['role'], $target)) return 'That member is not available.';
+        if (!$m || !self::canActOn($ws, $actor, $m['role'], $target, 'team.deactivate')) return 'That member is not available.';
         if ($do === 'reactivate') {
             if ($m['status'] !== 'deactivated') return 'That member is already active.';
             Db::q("UPDATE workspace_members SET status = 'active' WHERE workspace_id = ? AND user_id = ?", [$wid, $target]); self::audit($wid, $actor, $target, 'reactivated'); return '';
@@ -286,9 +315,9 @@ final class Team {
         if ($existing && $existing['status'] === 'deactivated') return 'Your access to this workspace was deactivated. Ask an admin to reactivate you.';
         $pdo = Db::pdo(); $pdo->beginTransaction();
         try {
-            if (!$existing) Db::q("INSERT INTO workspace_members (workspace_id, user_id, role, manager_id, status, created_at) VALUES (?,?,?,?, 'active', ?)", [$wid, $uid, $inv['role'], $inv['manager_id'] ?: null, self::now()]);
+            if (!$existing) Db::q("INSERT INTO workspace_members (workspace_id, user_id, role, custom_role_id, manager_id, status, created_at) VALUES (?,?,?,?,?, 'active', ?)", [$wid, $uid, $inv['role'], $inv['custom_role_id'] ?? null, $inv['manager_id'] ?: null, self::now()]);
             Db::q("UPDATE workspace_invitations SET status = 'accepted', accepted_at = ? WHERE id = ?", [self::now(), (int)$inv['id']]);
-            self::audit($wid, $uid, $uid, 'invite_accepted', $inv['role']); $pdo->commit();
+            self::audit($wid, $uid, $uid, 'invite_accepted', Perm::label($inv['role'], $inv['custom_role_id'] ?? null, !empty($inv['custom_role_id']) ? (Perm::custom($wid, (int)$inv['custom_role_id'])['name'] ?? null) : null)); $pdo->commit();
         } catch (Throwable $e) { if ($pdo->inTransaction()) $pdo->rollBack(); error_log((string)$e); return 'Could not join the workspace. Try again.'; }
         Workspace::setCurrent($uid, $wid);
         return '';

@@ -8,6 +8,8 @@ $items = [ // key => [label, icon, path]
     'time' => ['Time Tracking', 'time', '/time-tracking'], 'attendance' => ['Attendance', 'attendance', '/attendance'], 'reports' => ['Reports', 'reports', '/reports'],
     'calendar' => ['Calendar', 'calendar', '/calendar'], 'team' => ['Teams', 'team', '/teams'], 'settings' => ['Settings', 'settings', '/settings'],
 ];
+$needs = ['projects' => 'projects.view', 'tasks' => 'tasks.view', 'time' => 'time.view', 'attendance' => 'attendance.view', 'reports' => 'reports.view', 'team' => 'team.view'];   // links the person may not use are not shown at all
+foreach ($needs as $k => $perm) if (!Perm::me($perm)) unset($items[$k]);
 $tip = 'pointer-events-none absolute left-full top-1/2 z-50 ml-3 hidden -translate-y-1/2 whitespace-nowrap rounded-lg bg-ink px-2.5 py-1.5 text-tiny font-semibold text-page opacity-0 shadow-card transition-opacity collapsed:block';
 ?><!doctype html>
 <html lang="en"<?= in_array($user['theme'] ?? '', ['light', 'dark'], true) ? ' data-theme="' . e($user['theme']) . '"' : '' ?>>

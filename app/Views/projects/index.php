@@ -74,7 +74,7 @@ $fv = $form['values'] ?? ['name' => '', 'description' => '', 'start_date' => '',
                 <summary class="icon-button list-none border-transparent bg-transparent [&::-webkit-details-marker]:hidden" aria-label="Project actions for <?= e($p['name']) ?>"><?= icon('more', 18) ?></summary>
                 <div class="absolute top-full right-0 z-20 mt-1 w-44 rounded-xl border border-line bg-surface p-1.5 shadow-modal">
                   <button type="button" class="menu-item" data-modal-open="project-modal" data-fill="<?= e(json_encode($edit)) ?>">Edit project</button>
-                  <button type="button" class="menu-item text-danger" data-project-archive="<?= (int)$p['id'] ?>" data-name="<?= e($p['name']) ?>" data-tasks="<?= (int)$p['tasks_total'] ?>" data-logs="<?= (int)$p['logs_count'] ?>">Archive project</button>
+                  <?php if ($canArchive): ?><button type="button" class="menu-item text-danger" data-project-archive="<?= (int)$p['id'] ?>" data-name="<?= e($p['name']) ?>" data-tasks="<?= (int)$p['tasks_total'] ?>" data-logs="<?= (int)$p['logs_count'] ?>">Archive project</button><?php endif; ?>
                 </div>
               </details>
             <?php endif; ?>

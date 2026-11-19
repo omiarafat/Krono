@@ -67,8 +67,8 @@ $tabs = ['members' => ['Members', 'team', $c['total']], 'structure' => ['Reporti
           <div class="flex gap-2.5">
             <select name="role" aria-label="Role" data-kauto class="<?= $select ?>">
               <option value="">All roles</option>
-              <?php foreach (Team::ROLE_LABEL as $k => $l): ?>
-                <option value="<?= $k ?>"<?= $f['role'] === $k ? ' selected' : '' ?>><?= e($l) ?></option>
+              <?php foreach (Team::filterRoles($ws) as $k => $l): ?>
+                <option value="<?= e((string)$k) ?>"<?= $f['role'] === $k ? ' selected' : '' ?>><?= e($l) ?></option>
               <?php endforeach; ?>
             </select>
 

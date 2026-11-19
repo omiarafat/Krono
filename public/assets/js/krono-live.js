@@ -15,8 +15,10 @@
     fetch(url, { headers: { 'X-Requested-With': 'fetch' }, credentials: 'same-origin', signal: mine.signal })
       .then(function (r) { if (!r.ok && r.status !== 422) throw new Error('http ' + r.status); return r.text(); })
       .then(function (html) {
-        var fresh = new DOMParser().parseFromString(html, 'text/html').getElementById(targetId); if (!fresh) throw new Error('no area');
+        var doc = new DOMParser().parseFromString(html, 'text/html'), fresh = doc.getElementById(targetId); if (!fresh) throw new Error('no area');
         area.replaceWith(fresh);
+        var owner = document.querySelector('form[data-live][data-live-target="' + targetId + '"]');   // extra pieces that live outside the area (e.g. a counter inside the filter card)
+        ((owner && owner.dataset.liveAlso) || '').split(' ').forEach(function (id) { var o = id && document.getElementById(id), n = id && doc.getElementById(id); if (o && n) o.replaceWith(n); });
         if (mode !== 'none') history[mode === 'replace' ? 'replaceState' : 'pushState']({ live: 1 }, '', url);
         if (/\/tasks$/.test(url.split('?')[0])) all('input[name=back]').forEach(function (b) { b.value = url.replace(/^.*?\/tasks/, '/tasks'); });   // forms outside the area (add / delete) return to the same filtered list
         document.dispatchEvent(new CustomEvent('krono:content', { detail: fresh }));
@@ -67,9 +69,9 @@
 
   document.addEventListener('click', function (e) {
     var a = e.target.closest && e.target.closest('a[data-live]'); if (!a || e.defaultPrevented || e.metaKey || e.ctrlKey || e.shiftKey || e.button) return;
-    var area = a.closest('[data-live-area]'); if (!area) return; e.preventDefault();
-    var form = document.querySelector('form[data-live][data-live-target="' + area.id + '"]'); if (form) fillForm(form, a.href);
-    load(a.href, area.id, 'push');
+    var area = a.closest('[data-live-area]'), tid = area ? area.id : (a.closest('[data-live-for]') || {}).dataset && a.closest('[data-live-for]').dataset.liveFor; if (!tid) return; e.preventDefault();
+    var form = document.querySelector('form[data-live][data-live-target="' + tid + '"]'); if (form) fillForm(form, a.href);
+    load(a.href, tid, 'push');
   });
 
   window.addEventListener('popstate', function () { if (document.querySelector('[data-live-area]')) location.reload(); });

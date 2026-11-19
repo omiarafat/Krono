@@ -96,7 +96,7 @@ $any = false; foreach ($list['items'] ?? [] as $r) if ($r['can_edit']) $any = tr
               <?php if ($any): ?><td class="whitespace-nowrap text-right">
                 <?php if ($t['can_edit']): ?>
                   <button type="button" class="icon-button h-7.5 w-7.5 border-transparent bg-transparent" data-modal-open="task-modal" data-fill="<?= e(json_encode($edit)) ?>" aria-label="Edit <?= e($t['title']) ?>" title="Edit task"><?= icon('edit', 15) ?></button>
-                  <button type="button" class="icon-button h-7.5 w-7.5 border-transparent bg-transparent hover:text-danger" data-task-delete="<?= (int)$t['id'] ?>" data-name="<?= e($t['title']) ?>" data-logs="<?= (int)$t['logs'] ?>" data-time="<?= e(fmt_hm((int)$t['logged'])) ?>" data-href="<?= url('/task?id=' . (int)$t['id']) ?>" aria-label="Delete <?= e($t['title']) ?>" title="Delete task"><?= icon('trash', 15) ?></button>
+                  <?php if ($t['can_delete']): ?><button type="button" class="icon-button h-7.5 w-7.5 border-transparent bg-transparent hover:text-danger" data-task-delete="<?= (int)$t['id'] ?>" data-name="<?= e($t['title']) ?>" data-logs="<?= (int)$t['logs'] ?>" data-time="<?= e(fmt_hm((int)$t['logged'])) ?>" data-href="<?= url('/task?id=' . (int)$t['id']) ?>" aria-label="Delete <?= e($t['title']) ?>" title="Delete task"><?= icon('trash', 15) ?></button><?php endif; ?>
                 <?php endif; ?></td><?php endif; ?>
             </tr>
           <?php endforeach; ?>
@@ -120,7 +120,8 @@ $any = false; foreach ($list['items'] ?? [] as $r) if ($r['can_edit']) $any = tr
 
 <?php
 if ($canAdd) { $taskProjects = $addable; $taskFixed = 0; $taskDefaultProject = isset($addable[$f['project']]) ? $f['project'] : ''; include __DIR__ . '/_modal.php'; include ROOT . '/app/Views/projects/_discard.php'; }
-if ($canAdd) include __DIR__ . '/_delete.php';
+$anyDelete = false; foreach ($list['items'] ?? [] as $r) if ($r['can_delete']) $anyDelete = true;
+if ($anyDelete) include __DIR__ . '/_delete.php';
 include ROOT . '/app/Views/partials/toast.php';
 ?>
 <script src="<?= asset('js/krono-modals.js') ?>" defer></script>

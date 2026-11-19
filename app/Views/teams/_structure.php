@@ -1,7 +1,7 @@
 <?php
 /* Manager cards (the part the search swaps). Vars: $tree [[manager, reports]] $manage $tz $f */
-$pill = fn(string $role) => '<span class="inline-flex items-center rounded-lg border px-2.5 py-1 text-micro font-bold ' . ($role === 'manager' ? 'border-brand/25 bg-soft text-brand' : 'border-line bg-surface text-ink') . '">' . e(Team::ROLE_LABEL[$role]) . '</span>';
-$info = fn(array $r) => e(json_encode($r + ['role_label' => Team::ROLE_LABEL[$r['role']], 'joined_label' => Ui::day($r['joined'], $tz), 'last_label' => Team::lastLabel($r['last'], $tz, true), 'expires_label' => ''], JSON_UNESCAPED_UNICODE));
+$pill = fn(array $r) => '<span class="inline-flex items-center rounded-lg border px-2.5 py-1 text-micro font-bold ' . ($r['role'] === 'manager' ? 'border-brand/25 bg-soft text-brand' : 'border-line bg-surface text-ink') . '\">' . e($r['role_name']) . '</span>';
+$info = fn(array $r) => e(json_encode($r + ['role_label' => $r['role_name'], 'joined_label' => Ui::day($r['joined'], $tz), 'last_label' => Team::lastLabel($r['last'], $tz, true), 'expires_label' => ''], JSON_UNESCAPED_UNICODE));
 ?>
 <?php if (!$tree): ?>
   <div class="mt-4 flex flex-col items-center rounded-xl border border-dashed border-line px-6 py-12 text-center">
@@ -28,7 +28,7 @@ $info = fn(array $r) => e(json_encode($r + ['role_label' => Team::ROLE_LABEL[$r[
             <div class="flex cursor-pointer items-center gap-2.5 rounded-xl border border-line px-3 py-2.5 hover:bg-raised" data-member="<?= $info($r) ?>">
               <?= Ui::avatar($r['name'], 'h-7 w-7') ?>
               <div class="min-w-0 flex-1"><div class="truncate text-xs font-bold"><?= e($r['name']) ?></div><div class="truncate text-micro text-muted"><?= e($r['email']) ?></div></div>
-              <?= $pill($r['role']) ?>
+              <?= $pill($r) ?>
               <button type="button" class="icon-button border-transparent bg-transparent" data-team-menu aria-haspopup="menu" aria-label="Actions for <?= e($r['name']) ?>"><?= icon('more', 18) ?></button>
             </div>
           <?php endforeach; ?>

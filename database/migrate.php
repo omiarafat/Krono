@@ -46,6 +46,10 @@ $add = [
     ['workspaces', 'time_format', "VARCHAR(2) NOT NULL DEFAULT '12'"], ['workspaces', 'language', "VARCHAR(8) NOT NULL DEFAULT 'en'"],
     // Audit Log shows whether an action worked
     ['audit_log', 'result', "VARCHAR(8) NOT NULL DEFAULT 'success'"],
+    // Custom roles: which custom role a member / invitation has (their built-in 'role' column then holds the base role of the custom role's data scope)
+    ['workspace_members', 'custom_role_id', 'BIGINT UNSIGNED NULL'], ['workspace_invitations', 'custom_role_id', 'BIGINT UNSIGNED NULL'],
+    // Where the person worked on that sign-in (chosen in Krono Desktop at Sign In; a day with both kinds is shown as Hybrid)
+    ['attendance_sessions', 'work_location', "VARCHAR(10) NOT NULL DEFAULT 'office'"],
 ];
 foreach ($add as [$t, $c, $def]) if (!$has($t, $c)) { $pdo->exec("ALTER TABLE `$t` ADD COLUMN `$c` $def"); echo str_pad("$t.$c", 28), "added\n"; }
 // Every account gets a personal workspace (owner). Existing projects join the workspace of the user who created them.

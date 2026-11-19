@@ -1,6 +1,6 @@
 <?php
 /* Members table + pagination (the part live filters swap). Vars: $list $f $tz $manage */
-$pill = fn(string $role) => '<span class="inline-flex items-center rounded-lg border px-2.5 py-1 text-micro font-bold ' . ($role === 'manager' ? 'border-brand/25 bg-soft text-brand' : 'border-line bg-surface text-ink') . '">' . e(Team::ROLE_LABEL[$role]) . '</span>';
+$pill = fn(array $r) => '<span class="inline-flex items-center rounded-lg border px-2.5 py-1 text-micro font-bold ' . ($r['role'] === 'manager' ? 'border-brand/25 bg-soft text-brand' : 'border-line bg-surface text-ink') . '\">' . e($r['role_name']) . '</span>';
 $state = fn(string $s) => '<span class="tag tag-' . ($s === 'active' ? 'green' : ($s === 'invited' ? 'amber' : 'gray')) . '">' . e(ucfirst($s)) . '</span>';
 $from = $list['total'] ? ($list['page'] - 1) * Team::PER_PAGE + 1 : 0; $to = $from ? $from + count($list['items']) - 1 : 0;
 ?>
@@ -18,11 +18,11 @@ $from = $list['total'] ? ($list['page'] - 1) * Team::PER_PAGE + 1 : 0; $to = $fr
       <thead><tr><th>Member</th><th>Email</th><th>Role</th><th>Reports to</th><th>Status</th><th>Last active</th><th class="w-0">Actions</th></tr></thead>
       <tbody>
       <?php foreach ($list['items'] as $r):
-        $info = $r + ['role_label' => Team::ROLE_LABEL[$r['role']], 'joined_label' => $r['kind'] === 'invite' ? Ui::day($r['joined'], $tz) : Ui::day($r['joined'], $tz), 'last_label' => Team::lastLabel($r['last'], $tz, true), 'expires_label' => !empty($r['expires']) ? Ui::day($r['expires'], $tz) : '']; ?>
+        $info = $r + ['role_label' => $r['role_name'], 'joined_label' => $r['kind'] === 'invite' ? Ui::day($r['joined'], $tz) : Ui::day($r['joined'], $tz), 'last_label' => Team::lastLabel($r['last'], $tz, true), 'expires_label' => !empty($r['expires']) ? Ui::day($r['expires'], $tz) : '']; ?>
         <tr tabindex="0" data-member="<?= e(json_encode($info, JSON_UNESCAPED_UNICODE)) ?>" class="cursor-pointer hover:bg-raised">
-          <td><div class="flex items-center gap-2.5"><?= Ui::avatar($r['name'], 'h-8 w-8') ?><div class="min-w-0"><div class="truncate text-xs font-bold"><?= e($r['name']) ?><?= $r['self'] ? ' <span class="font-semibold text-muted">(you)</span>' : '' ?></div><div class="text-micro text-muted"><?= $r['kind'] === 'invite' ? 'Invitation pending' : ($r['role'] === 'owner' ? 'Workspace owner' : 'Workspace ' . strtolower(Team::ROLE_LABEL[$r['role']])) ?></div></div></div></td>
+          <td><div class="flex items-center gap-2.5"><?= Ui::avatar($r['name'], 'h-8 w-8') ?><div class="min-w-0"><div class="truncate text-xs font-bold"><?= e($r['name']) ?><?= $r['self'] ? ' <span class="font-semibold text-muted">(you)</span>' : '' ?></div><div class="text-micro text-muted"><?= $r['kind'] === 'invite' ? 'Invitation pending' : ($r['role'] === 'owner' ? 'Workspace owner' : 'Workspace ' . strtolower($r['role_name'])) ?></div></div></div></td>
           <td class="max-w-52 truncate"><?= e($r['email']) ?></td>
-          <td><?= $pill($r['role']) ?></td>
+          <td><?= $pill($r) ?></td>
           <td><?= $r['manager'] ? e($r['manager']) : '—' ?></td>
           <td><?= $state($r['status']) ?></td>
           <td class="whitespace-nowrap"><?= e(Team::lastLabel($r['last'], $tz)) ?></td>
