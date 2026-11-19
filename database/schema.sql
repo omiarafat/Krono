@@ -185,6 +185,7 @@ CREATE TABLE IF NOT EXISTS attendance_sessions (
   sign_out_at DATETIME NULL,
   auto_closed TINYINT(1) NOT NULL DEFAULT 0,
   source VARCHAR(20) NOT NULL DEFAULT 'desktop',
+  work_location VARCHAR(10) NOT NULL DEFAULT 'office',
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   KEY idx_att_user_in (user_id, sign_in_at),
   CONSTRAINT fk_att_user FOREIGN KEY (user_id) REFERENCES users(id)
