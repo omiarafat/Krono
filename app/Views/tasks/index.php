@@ -15,24 +15,27 @@ $any = false; foreach ($list['items'] ?? [] as $r) if ($r['can_edit']) $any = tr
     <p class="m-0 rounded-xl border border-line bg-surface px-3.5 py-2.5 text-tiny text-muted">You can see tasks of the projects you belong to. Owners, admins, managers and project leaders add and edit tasks.</p>
   <?php endif; ?>
 
-  <form method="get" action="<?= url('/tasks') ?>" class="flex flex-wrap items-center gap-2.5" id="task-filters" role="search" data-live data-live-target="task-results">
-    <div class="flex h-10 min-w-48 flex-1 items-center gap-2 rounded-control border border-line bg-surface px-3 text-muted focus-within:outline-2 focus-within:outline-offset-1 focus-within:outline-brand">
+  <form method="get" action="<?= url('/tasks') ?>" class="flex flex-wrap justify-between items-center gap-2.5" id="task-filters" role="search" data-live data-live-target="task-results">
+    <div class="flex h-10 min-w-48 max-w-75 w-full flex-1 items-center gap-2 rounded-control border border-line bg-surface px-3 text-muted focus-within:outline-2 focus-within:outline-offset-1 focus-within:outline-brand">
       <?= icon('search', 16) ?>
       <input type="search" name="q" value="<?= e($f['q']) ?>" placeholder="Search tasks…" aria-label="Search tasks" maxlength="100" class="h-full min-w-0 flex-1 border-0 bg-transparent p-0 text-xs text-ink outline-none placeholder:text-muted">
     </div>
-    <select name="project" aria-label="Project" data-kauto class="<?= $select ?>">
-      <option value="">All projects</option>
-      <?php foreach ($projects as $id => $name): ?><option value="<?= (int)$id ?>"<?= $f['project'] === (int)$id ? ' selected' : '' ?>><?= e($name) ?></option><?php endforeach; ?>
-    </select>
-    <select name="status" aria-label="Status" data-kauto class="<?= $select ?>">
-      <option value="all">All status</option>
-      <?php foreach (Task::STATUS as $k => $l): ?><option value="<?= $k ?>" data-tag="<?= Ui::tone('task', $k) ?>"<?= $f['status'] === $k ? ' selected' : '' ?>><?= e($l) ?></option><?php endforeach; ?>
-    </select>
-    <select name="priority" aria-label="Priority" data-kauto class="<?= $select ?>">
-      <option value="all">All priority</option>
-      <?php foreach (Project::PRIORITY as $k => $l): ?><option value="<?= $k ?>" data-tag="<?= Ui::tone('priority', $k) ?>"<?= $f['priority'] === $k ? ' selected' : '' ?>><?= e($l) ?></option><?php endforeach; ?>
-    </select>
-    <noscript><button class="btn" type="submit">Apply</button></noscript>
+
+    <div class="flex flex-wrap items-center gap-2.5">
+      <select name="project" aria-label="Project" data-kauto class="<?= $select ?>">
+        <option value="">All projects</option>
+        <?php foreach ($projects as $id => $name): ?><option value="<?= (int)$id ?>"<?= $f['project'] === (int)$id ? ' selected' : '' ?>><?= e($name) ?></option><?php endforeach; ?>
+      </select>
+      <select name="status" aria-label="Status" data-kauto class="<?= $select ?>">
+        <option value="all">All status</option>
+        <?php foreach (Task::STATUS as $k => $l): ?><option value="<?= $k ?>" data-tag="<?= Ui::tone('task', $k) ?>"<?= $f['status'] === $k ? ' selected' : '' ?>><?= e($l) ?></option><?php endforeach; ?>
+      </select>
+      <select name="priority" aria-label="Priority" data-kauto class="<?= $select ?>">
+        <option value="all">All priority</option>
+        <?php foreach (Project::PRIORITY as $k => $l): ?><option value="<?= $k ?>" data-tag="<?= Ui::tone('priority', $k) ?>"<?= $f['priority'] === $k ? ' selected' : '' ?>><?= e($l) ?></option><?php endforeach; ?>
+      </select>
+      <noscript><button class="btn" type="submit">Apply</button></noscript>
+    </div>
   </form>
 
   <div id="task-results" data-live-area>

@@ -23,43 +23,51 @@ $tip = 'pointer-events-none absolute left-full top-1/2 z-50 ml-3 hidden -transla
 </head>
 <body>
 <div class="flex min-h-screen">
-  <aside class="sticky top-0 z-40 flex h-screen w-62 min-w-62 shrink-0 flex-col self-start border-r border-line bg-side px-3.75 pt-5.5 pb-4 collapsed:w-19.5 collapsed:min-w-19.5 collapsed:px-3">
-    <div class="mb-5.5 border-b border-line px-1.75 pb-6 collapsed:hidden">
-      <a href="<?= url('/dashboard') ?>" aria-label="Krono dashboard">
-        <img class="logo-light block h-auto w-44" src="<?= asset('brand/Krono_Logo_Light.svg') ?>" alt="Krono">
-        <img class="logo-dark block h-auto w-44" src="<?= asset('brand/Krono_Logo_Dark.svg') ?>" alt="Krono">
-      </a>
-      <span class="mt-2.5 ml-2 block text-nano font-bold tracking-caption text-side-muted">WORK MANAGEMENT</span>
-    </div>
-    <button type="button" data-sidebar-toggle class="group/nav relative mx-auto mb-5.5 hidden h-11 w-11 cursor-pointer items-center justify-center rounded-xl border-0 bg-transparent p-0 collapsed:flex" aria-label="Open sidebar">
-      <img class="h-9 w-9" src="<?= asset('brand/Krono_Mark.svg') ?>" alt="">
-      <span role="tooltip" class="<?= $tip ?> group-hover/nav:opacity-100 group-focus-visible/nav:opacity-100">Open sidebar</span>
-    </button>
-    <nav aria-label="Main">
-      <div class="px-2.5 pb-2.5 text-micro font-bold tracking-label text-side-muted collapsed:hidden">WORKSPACE</div>
-      <?php foreach ($items as $k => [$label, $ic, $path]): ?>
-        <a class="nav-link group/nav" href="<?= url($path) ?>"<?= $k === $nav ? ' aria-current="page"' : '' ?>>
-          <?= icon($ic, 18) ?><span class="collapsed:hidden"><?= e($label) ?></span>
-          <span role="tooltip" class="<?= $tip ?> group-hover/nav:opacity-100 group-focus-visible/nav:opacity-100"><?= e($label) ?></span>
+  <aside class="sticky top-0 z-40 flex h-screen w-55 min-w-55 border-r border-line bg-side px-3.75 pt-5.5 pb-4 collapsed:w-19.5 collapsed:min-w-19.5 collapsed:px-3">
+    <div class="relative shrink-0 flex-col self-start h-full w-full flex">
+      <button type="button" data-sidebar-toggle class="icon-button absolute -right-6 top-9.5 z-1" aria-label="Toggle sidebar">
+        <span class="inline-flex transition-transform collapsed:rotate-180"><?= icon('chevron-left', 18) ?></span>
+      </button>
+      <div class="mb-5.5 border-b border-line px-1.75 pb-6 collapsed:hidden">
+        <a href="<?= url('/dashboard') ?>" aria-label="Krono dashboard">
+          <img class="logo-light block h-auto w-44" src="<?= asset('brand/Krono_Logo_Light.svg') ?>" alt="Krono">
+          <img class="logo-dark block h-auto w-44" src="<?= asset('brand/Krono_Logo_Dark.svg') ?>" alt="Krono">
         </a>
-      <?php endforeach; ?>
-    </nav>
-    <div class="mt-auto flex items-center gap-2.25 border-t border-line px-0.75 pt-4 collapsed:justify-center">
-      <?= Avatar::html((int)($user['id'] ?? 0), $uname !== '' ? $uname : $uemail, $user['avatar'] ?? null) ?>
-      <div class="flex min-w-0 flex-1 flex-col gap-0.5 collapsed:hidden"><strong class="truncate text-xs"><?= e($uname) ?></strong><span class="truncate text-micro text-side-muted"><?= e($uemail) ?></span></div>
+        <span class="mt-2.5 ml-2 block text-nano font-bold tracking-caption text-side-muted">
+          WORK MANAGEMENT
+        </span>
+      </div>
+      <button type="button" data-sidebar-toggle class="group/nav relative mx-auto mb-5.5 hidden h-11 w-11 cursor-pointer items-center justify-center rounded-xl border-0 bg-transparent p-0 collapsed:flex" aria-label="Open sidebar">
+        <img class="h-9 w-9" src="<?= asset('brand/Krono_Mark.svg') ?>" alt="">
+        <span role="tooltip" class="<?= $tip ?> group-hover/nav:opacity-100 group-focus-visible/nav:opacity-100">
+          Open sidebar
+        </span>
+      </button>
+      <nav aria-label="Main">
+        <div class="px-2.5 pb-2.5 text-micro font-bold tracking-label text-side-muted collapsed:hidden">WORKSPACE</div>
+        <?php foreach ($items as $k => [$label, $ic, $path]): ?>
+          <a class="nav-link group/nav" href="<?= url($path) ?>"<?= $k === $nav ? ' aria-current="page"' : '' ?>>
+            <?= icon($ic, 18) ?><span class="collapsed:hidden"><?= e($label) ?></span>
+            <span role="tooltip" class="<?= $tip ?> group-hover/nav:opacity-100 group-focus-visible/nav:opacity-100"><?= e($label) ?></span>
+          </a>
+        <?php endforeach; ?>
+      </nav>
+      <div class="mt-auto flex items-center gap-2.25 border-t border-line px-0.75 pt-4 collapsed:justify-center">
+        <?= Avatar::html((int)($user['id'] ?? 0), $uname !== '' ? $uname : $uemail, $user['avatar'] ?? null) ?>
+        <div class="flex min-w-0 flex-1 flex-col gap-0.5 collapsed:hidden"><strong class="truncate text-xs"><?= e($uname) ?></strong><span class="truncate text-micro text-side-muted"><?= e($uemail) ?></span></div>
+      </div>
     </div>
   </aside>
 
   <main class="min-w-0 flex-1">
     <header class="sticky top-0 z-30 border-b border-line bg-page/90 px-8 backdrop-blur max-sm:px-4">
-      <div class="mx-auto flex h-18.5 max-w-310 items-center justify-between gap-3">
+      <div class="mx-auto flex h-18.5 items-center justify-between gap-3">
         <div class="flex min-w-0 items-center gap-3.5">
-          <button type="button" data-sidebar-toggle class="icon-button" aria-label="Toggle sidebar"><span class="inline-flex transition-transform collapsed:rotate-180"><?= icon('chevron-left', 18) ?></span></button>
           <div class="truncate text-xs text-muted">Workspace <span class="mx-2 text-side-muted">›</span> <?php if (!empty($crumb2)): ?><a href="<?= url($crumburl ?? '/projects') ?>" class="text-muted no-underline hover:text-brand"><?= e($crumb) ?></a> <span class="mx-2 text-side-muted">›</span> <?php if (!empty($crumb3)): ?><a href="<?= e($crumb2url) ?>" class="text-muted no-underline hover:text-brand"><?= e($crumb2) ?></a> <span class="mx-2 text-side-muted">›</span> <strong class="font-bold text-ink"><?= e($crumb3) ?></strong><?php else: ?><strong class="font-bold text-ink"><?= e($crumb2) ?></strong><?php endif; ?><?php else: ?><strong class="font-bold text-ink"><?= e($crumb) ?></strong><?php endif; ?></div>
         </div>
         <div class="flex items-center gap-3">
-          <button class="icon-button" type="button" aria-label="Search" title="Search (coming soon)"><?= icon('search', 16) ?></button>
-          <button class="icon-button" type="button" aria-label="Notifications" title="Notifications (coming soon)"><?= icon('bell', 16) ?></button>
+          <button class="icon-button size-8.5" type="button" aria-label="Search" title="Search (coming soon)"><?= icon('search', 16) ?></button>
+          <button class="icon-button size-8.5" type="button" aria-label="Notifications" title="Notifications (coming soon)"><?= icon('bell', 16) ?></button>
           <span class="mx-0.75 h-6 w-px bg-line"></span>
           <details class="relative" data-account-menu>
             <summary class="flex cursor-pointer list-none items-center gap-2.5 rounded-xl p-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand [&::-webkit-details-marker]:hidden" aria-label="Account menu">
@@ -74,7 +82,7 @@ $tip = 'pointer-events-none absolute left-full top-1/2 z-50 ml-3 hidden -transla
         </div>
       </div>
     </header>
-    <div class="mx-auto max-w-310 px-8 max-sm:px-4">
+    <div class="mx-auto px-8 max-sm:px-4">
       <?= $content ?? '' ?>
       <footer class="border-t border-line py-4.5 text-micro text-muted">Krono <span class="mx-1.25">·</span> Track time. Manage work.</footer>
     </div>
