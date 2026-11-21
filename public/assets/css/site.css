@@ -2144,6 +2144,48 @@
     display: grid;
     grid-template-columns: repeat(6, minmax(0, 1fr));
     gap: calc(var(--spacing) * 2);
+  }.setup-steps {
+    margin: 0px;
+    margin-bottom: calc(var(--spacing) * 6);
+    display: flex;
+    list-style-type: none;
+    align-items: center;
+    justify-content: space-between;
+    gap: calc(var(--spacing) * 2);
+    padding: 0px;
+  }.setup-step {
+    display: flex;
+    align-items: center;
+    gap: calc(var(--spacing) * 2);
+    font-size: var(--text-nano);
+    --tw-font-weight: var(--font-weight-bold);
+    font-weight: var(--font-weight-bold);
+    color: var(--muted);
+  }.setup-dot {
+    display: flex;
+    height: calc(var(--spacing) * 6);
+    width: calc(var(--spacing) * 6);
+    align-items: center;
+    justify-content: center;
+    border-radius: calc(infinity * 1px);
+    border-style: var(--tw-border-style);
+    border-width: 1px;
+    border-color: var(--border);
+    background-color: var(--surface);
+    font-size: var(--text-nano);
+    --tw-font-weight: var(--font-weight-bold);
+    font-weight: var(--font-weight-bold);
+    color: var(--muted);
+  }.setup-step.is-now {
+    color: var(--brand);
+  }.setup-step.is-now .setup-dot {
+    border-color: var(--brand);
+    background-color: var(--brand);
+    color: var(--color-white);
+  }.setup-step.is-done .setup-dot {
+    border-color: var(--brand);
+    background-color: var(--brand);
+    color: var(--color-white);
   }
   .pw-field {
     position: relative;

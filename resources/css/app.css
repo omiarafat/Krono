@@ -43,6 +43,12 @@
 .auth-notice { @apply rounded-xl border border-line bg-soft/60 px-3.5 py-3 text-tiny leading-copy text-muted; }
 .auth-link { @apply font-semibold text-brand no-underline hover:underline; }
 .auth-otp { @apply h-12 w-full min-w-0 rounded-control border border-line bg-surface text-center text-lg font-bold text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand; }
+.setup-steps { @apply m-0 mb-6 flex list-none items-center justify-between gap-2 p-0; }
+.setup-step { @apply flex items-center gap-2 text-nano font-bold text-muted; }
+.setup-dot { @apply flex h-6 w-6 items-center justify-center rounded-full border border-line bg-surface text-nano font-bold text-muted; }
+.setup-step.is-now { @apply text-brand; }
+.setup-step.is-now .setup-dot { @apply border-brand bg-brand text-white; }
+.setup-step.is-done .setup-dot { @apply border-brand bg-brand text-white; }
 .auth-otp-row { @apply grid grid-cols-6 gap-2; }
 .pw-field { @apply relative; }
 .pw-field .field-input { @apply pr-11; }

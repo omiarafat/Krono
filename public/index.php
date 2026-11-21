@@ -12,6 +12,7 @@ $routes = [
     'GET /register' => [$A, 'showRegister'], 'POST /register' => [$A, 'register'],
     'GET /verify' => [$A, 'showVerify'], 'POST /verify' => [$A, 'verify'], 'POST /verify/resend' => [$A, 'resend'],
     'GET /forgot' => [$A, 'showForgot'], 'POST /forgot' => [$A, 'forgot'], 'GET /reset' => [$A, 'showReset'], 'POST /reset' => [$A, 'reset'], 'POST /reset/resend' => [$A, 'resendReset'],
+    'GET /workspace/setup' => [WorkspaceSetupController::class, 'show'], 'POST /workspace/setup' => [WorkspaceSetupController::class, 'save'],
     'POST /logout' => [$A, 'logout'], 'GET /dashboard' => [DashboardController::class, 'index'],
     'GET /projects' => [ProjectController::class, 'index'], 'POST /projects/save' => [ProjectController::class, 'save'], 'POST /projects/archive' => [ProjectController::class, 'archive'], 'GET /project' => [ProjectController::class, 'show'], 'GET /task' => [TaskController::class, 'show'], 'POST /tasks/details' => [TaskController::class, 'saveDetails'],
     'GET /tasks' => [TaskController::class, 'index'], 'POST /tasks/save' => [TaskController::class, 'save'], 'POST /tasks/toggle' => [TaskController::class, 'toggle'], 'POST /tasks/delete' => [TaskController::class, 'delete'],
