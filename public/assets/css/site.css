@@ -668,9 +668,6 @@
   .grid-cols-4 {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
-  .grid-cols-6 {
-    grid-template-columns: repeat(6, minmax(0, 1fr));
-  }
   .grid-cols-\[14\.5rem_1fr\] {
     grid-template-columns: 14.5rem 1fr;
   }
