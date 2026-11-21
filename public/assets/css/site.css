@@ -2140,6 +2140,49 @@
       outline-color: var(--brand);
     }
   }
+  .auth-otp-row {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: calc(var(--spacing) * 2);
+  }
+  .pw-field {
+    position: relative;
+  }
+  .pw-field .field-input {
+    padding-right: calc(var(--spacing) * 11);
+  }
+  .pw-toggle {
+    position: absolute;
+    inset-block: 0px;
+    right: 0px;
+    display: flex;
+    width: calc(var(--spacing) * 11);
+    cursor: pointer;
+    align-items: center;
+    justify-content: center;
+    border-top-right-radius: var(--radius-control);
+    border-bottom-right-radius: var(--radius-control);
+    border-style: var(--tw-border-style);
+    border-width: 0px;
+    background-color: transparent;
+    padding: 0px;
+    color: var(--muted);
+    &:hover {
+      @media (hover: hover) {
+        color: var(--text);
+      }
+    }
+    &:focus-visible {
+      outline-style: var(--tw-outline-style);
+      outline-width: 2px;
+    }
+    &:focus-visible {
+      outline-offset: 0px;
+    }
+    &:focus-visible {
+      outline-color: var(--brand);
+    }
+  }
   .field-label {
     margin-bottom: calc(var(--spacing) * 1.75);
     display: block;
