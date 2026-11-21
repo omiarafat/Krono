@@ -6,7 +6,12 @@
   <p class="mt-2 mb-0 text-xs leading-copy text-muted">Enter the six-digit code sent to <strong class="text-ink"><?= e($email ?? '') ?></strong> and choose a new password.</p>
   <?= flash_html() ?><?= errors_html($errors ?? []) ?>
   <form method="post" action="<?= url('/reset') ?>" novalidate class="mt-5 flex flex-col gap-4"><?= csrf_field() ?>
-    <div><label class="field-label" for="p-code">Reset code</label><div data-otp><input class="field-input" id="p-code" name="code" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="••••••" required autofocus></div></div>
+    <div>
+      <label class="field-label" for="p-code">Reset code</label>
+      <div data-otp>
+        <input class="field-input" id="p-code" name="code" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="••••••" required autofocus>
+      </div>
+    </div>
       <div><label class="field-label" for="p-pass">New password</label><input class="field-input" id="p-pass" type="password" name="password" autocomplete="new-password" placeholder="At least 8 characters" required></div>
       <div><label class="field-label" for="p-pass2">Confirm new password</label><input class="field-input" id="p-pass2" type="password" name="password_confirm" autocomplete="new-password" placeholder="Enter password again" required></div>
     <?php if (Auth::fixedCode()): ?><p class="auth-notice m-0"><strong class="text-ink">Development mode:</strong> use the demo code <strong class="text-ink"><?= e((string)env('FIXED_CODE', '123456')) ?></strong>. It only works on a local setup.</p><?php endif; ?>
