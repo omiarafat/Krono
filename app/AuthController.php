@@ -33,6 +33,31 @@ final class AuthController {
         flash($r === 'throttled' ? 'error' : 'ok', $r === 'throttled' ? 'Please wait a minute before requesting another code.' : 'A new code was sent.');
         redirect('/verify');
     }
+    // ---------- forgot password ----------
+    static function showForgot(): void { if (Auth::user()) redirect('/dashboard'); render('auth/forgot', ['title' => 'Forgot password']); }
+    static function forgot(): void {
+        $email = Auth::normEmail((string)($_POST['email'] ?? ''));
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) { render('auth/forgot', ['title' => 'Forgot password', 'errors' => ['Enter a valid email address.']]); return; }
+        $r = Auth::sendResetCode($email);
+        $_SESSION['reset_email'] = $email;   // same message whether or not the account exists
+        flash($r === 'throttled' ? 'error' : 'ok', $r === 'throttled' ? 'Please wait a minute before requesting another code.' : 'If an account exists for that email, a code has been sent.');
+        redirect('/reset');
+    }
+    static function showReset(): void { if (empty($_SESSION['reset_email'])) redirect('/forgot'); render('auth/reset', ['title' => 'Reset password', 'email' => $_SESSION['reset_email']]); }
+    static function reset(): void {
+        $email = (string)($_SESSION['reset_email'] ?? ''); if (!$email) redirect('/forgot');
+        $code = preg_replace('/\D/', '', (string)($_POST['code'] ?? ''));
+        $r = strlen($code) === 6 ? Auth::resetPassword($email, $code, (string)($_POST['password'] ?? ''), (string)($_POST['password_confirm'] ?? '')) : 'invalid';
+        if ($r === 'ok') { unset($_SESSION['reset_email']); flash('ok', 'Your password was changed. Sign in with the new password.'); redirect('/login'); }
+        $m = ['invalid' => 'That code is not correct.', 'expired' => 'That code has expired. Request a new one.', 'locked' => 'Too many wrong attempts. Request a new code.', 'weak' => 'Password must be at least 8 characters.', 'mismatch' => 'Passwords do not match.'][$r];
+        render('auth/reset', ['title' => 'Reset password', 'email' => $email, 'errors' => [$m]]);
+    }
+    static function resendReset(): void {
+        $email = (string)($_SESSION['reset_email'] ?? ''); if (!$email) redirect('/forgot');
+        $r = Auth::sendResetCode($email);
+        flash($r === 'throttled' ? 'error' : 'ok', $r === 'throttled' ? 'Please wait a minute before requesting another code.' : 'If an account exists for that email, a new code has been sent.');
+        redirect('/reset');
+    }
     // Website -> app: the signed-in user presses "Open Krono Desktop". A one-time code (60 s) goes to the app through krono://.
     static function openApp(): void {
         $u = Auth::user(); if (!$u) redirect('/login');

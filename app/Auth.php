@@ -95,6 +95,38 @@ final class Auth {
         return 'ok';
     }
 
+    // ---------- forgot password (same code rules as email verification; 123456 only in local "fixed" mode) ----------
+    /** Sends a reset code when the account exists. Returns 'sent' | 'throttled' | 'none' (callers show the same message for 'sent' and 'none'). */
+    static function sendResetCode(string $email): string {
+        $u = Db::q('SELECT id FROM users WHERE email = ? AND status = "active" AND email_verified_at IS NOT NULL', [$email])->fetch();
+        if (!$u) return 'none';
+        $last = Db::q('SELECT created_at FROM password_reset_codes WHERE user_id = ? ORDER BY id DESC LIMIT 1', [$u['id']])->fetchColumn();
+        if ($last && strtotime($last . ' UTC') > time() - self::RESEND_SEC) return 'throttled';
+        $code = self::fixedCode() ? (string)env('FIXED_CODE', '123456') : (string)random_int(100000, 999999);
+        Db::q('UPDATE password_reset_codes SET consumed_at = UTC_TIMESTAMP() WHERE user_id = ? AND consumed_at IS NULL', [$u['id']]);
+        Db::q('INSERT INTO password_reset_codes (user_id, code_hash, expires_at, created_at) VALUES (?, ?, UTC_TIMESTAMP() + INTERVAL ? MINUTE, UTC_TIMESTAMP())', [$u['id'], self::h($code), self::CODE_TTL_MIN]);
+        Mailer::send($email, 'Your Krono password reset code', "Your Krono password reset code is $code. It expires in " . self::CODE_TTL_MIN . ' minutes. If you did not ask for it, you can ignore this email.');
+        return 'sent';
+    }
+    /** Checks the code and sets the new password. Returns 'ok' | 'invalid' | 'expired' | 'locked' | 'weak' | 'mismatch'. */
+    static function resetPassword(string $email, string $code, string $pass, string $confirm): string {
+        if (strlen($pass) < 8) return 'weak';
+        if ($pass !== $confirm) return 'mismatch';
+        $u = Db::q('SELECT id FROM users WHERE email = ? AND status = "active" AND email_verified_at IS NOT NULL', [$email])->fetch();
+        if (!$u) return 'invalid';
+        $r = Db::q('SELECT * FROM password_reset_codes WHERE user_id = ? AND consumed_at IS NULL ORDER BY id DESC LIMIT 1', [$u['id']])->fetch();
+        if (!$r || strtotime($r['expires_at'] . ' UTC') < time()) return 'expired';
+        if ((int)$r['attempts'] >= self::CODE_MAX_TRIES) return 'locked';
+        if (!hash_equals($r['code_hash'], self::h($code))) { Db::q('UPDATE password_reset_codes SET attempts = attempts + 1 WHERE id = ?', [$r['id']]); return 'invalid'; }
+        Db::q('UPDATE password_reset_codes SET consumed_at = UTC_TIMESTAMP() WHERE id = ?', [$r['id']]);
+        Db::q('UPDATE users SET password_hash = ? WHERE id = ?', [password_hash($pass, PASSWORD_DEFAULT), $u['id']]);
+        Db::q('DELETE FROM login_attempts WHERE email = ?', [$email]);
+        // A new password signs out every other browser and app.
+        Db::q('UPDATE web_sessions SET revoked_at = UTC_TIMESTAMP() WHERE user_id = ? AND revoked_at IS NULL', [$u['id']]);
+        Db::q('UPDATE api_tokens SET revoked_at = UTC_TIMESTAMP() WHERE user_id = ? AND revoked_at IS NULL', [$u['id']]);
+        return 'ok';
+    }
+
     // ---------- desktop app (Bearer token) ----------
     /** Creates a token for the app. Returns the plain token once; only its hash is stored. */
     static function issueToken(int $uid, string $device = 'Krono Desktop'): string {
