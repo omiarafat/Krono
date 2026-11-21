@@ -77,10 +77,10 @@ $now = new DateTimeImmutable('now', $tz);
     <div class="mt-5 flex justify-end"><?= $save ?></div>
   </form>
 </section>
-<?php if (!empty($own)): $pillName = 'days_off[]'; $pillId = 'me-off'; $pillDays = DaysOff::listOf($own['days']); $pend = $own['pending']; ?>
+<?php if (!empty($dayOff)): $pillName = 'days_off[]'; $pillId = 'me-off'; $pillDays = DaysOff::listOf($dayOff['days']); $pend = $dayOff['pending']; ?>
 <section class="panel-card mt-4.5 p-5.5 max-sm:p-4" aria-labelledby="do-title">
   <h2 class="m-0 text-base" id="do-title">Weekly days off</h2>
-  <p class="mt-1 mb-4 text-xs text-muted">Your days off follow the workspace (<?= e(DaysOff::label($own['default'])) ?>) unless you ask for your own. A change needs approval from an Owner, an Admin or your manager.</p>
+  <p class="mt-1 mb-4 text-xs text-muted">Your days off follow the workspace (<?= e(DaysOff::label($dayOff['default'])) ?>) unless you ask for your own. A change needs approval from an Owner, an Admin or your manager.</p>
   <?php if ($pend): ?>
     <div class="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-tag-amber/40 bg-tag-amber/10 px-3.5 py-3 text-tiny">
       <span><strong>Waiting for approval:</strong> <?= e(DaysOff::label((string)$pend['days_off'])) ?>. Your current days off stay until it is approved.</span>
@@ -88,7 +88,7 @@ $now = new DateTimeImmutable('now', $tz);
     </div>
   <?php endif; ?>
   <form method="post" action="<?= url('/requests/days') ?>" novalidate><?= csrf_field() ?>
-    <div class="field-label">Your days off <span class="font-normal text-muted">· <?= $own['custom'] ? 'your own choice' : 'workspace default' ?></span></div>
+    <div class="field-label">Your days off <span class="font-normal text-muted">· <?= $dayOff['custom'] ? 'your own choice' : 'workspace default' ?></span></div>
     <?php include ROOT . '/app/Views/partials/day-pills.php'; ?>
     <div class="mt-4 flex justify-end"><button type="submit" class="btn btn-primary">Send for approval</button></div>
   </form>
