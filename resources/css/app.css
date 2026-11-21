@@ -49,6 +49,12 @@
 .setup-step.is-now { @apply text-brand; }
 .setup-step.is-now .setup-dot { @apply border-brand bg-brand text-white; }
 .setup-step.is-done .setup-dot { @apply border-brand bg-brand text-white; }
+.ws-card { @apply m-0 flex items-center gap-3.5 rounded-panel border border-line bg-surface p-4 text-ink; }
+.ws-card.is-active { @apply border-brand bg-soft/60; }
+.ws-card-new { @apply border-dashed hover:border-brand; }
+.ws-card-icon { @apply flex h-11 w-11 shrink-0 items-center justify-center rounded-tile bg-soft text-brand; }
+.choice-card { @apply flex flex-row text-left font-normal cursor-pointer items-center gap-3.5 rounded-panel border border-line bg-surface p-4 has-checked:border-brand has-checked:bg-soft/60 has-focus-visible:outline-2 has-focus-visible:outline-brand; }
+.choice-card.is-disabled { @apply cursor-not-allowed opacity-60; }
 .auth-otp-row { @apply grid grid-cols-6 gap-2; }
 .pw-field { @apply relative; }
 .pw-field .field-input { @apply pr-11; }

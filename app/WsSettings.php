@@ -8,7 +8,7 @@ final class WsSettings {
         'role_changed' => 'Role updated', 'manager_changed' => 'Reports-to changed', 'reactivated' => 'Member reactivated', 'deactivated' => 'Member deactivated',
         'email_change_requested' => 'Email change requested', 'email_changed' => 'Email changed', 'password_changed' => 'Password changed',
         'workspace_updated' => 'Workspace settings updated', 'role_created' => 'Role created', 'role_updated' => 'Role updated', 'role_deleted' => 'Role deleted',
-        'workspace_created' => 'Workspace created', 'daysoff_requested' => 'Days-off change requested', 'leave_requested' => 'Leave requested', 'request_approved' => 'Request approved', 'request_rejected' => 'Request rejected',
+        'workspace_created' => 'Workspace created', 'workspace_upgraded' => 'Workspace upgraded to company', 'daysoff_requested' => 'Days-off change requested', 'leave_requested' => 'Leave requested', 'request_approved' => 'Request approved', 'request_rejected' => 'Request rejected',
     ];
 
     // ---------- General ----------
