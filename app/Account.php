@@ -91,7 +91,7 @@ final class Account {
     }
 
     private static function audit(int $uid, string $action, string $detail = ''): void {
-        try { Team::audit((int)Workspace::ensureFor($uid)['id'], $uid, $uid, $action, $detail); } catch (Throwable $e) { error_log((string)$e); }
+        try { $w = Workspace::forUser($uid); if ($w) Team::audit((int)$w['id'], $uid, $uid, $action, $detail); } catch (Throwable $e) { error_log((string)$e); }
     }
 
     // ---------- e-mail change (the old address stays until the new one is confirmed) ----------

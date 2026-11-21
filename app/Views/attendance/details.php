@@ -1,5 +1,5 @@
 <?php
-/* Attendance Details (read-only). Vars: $s (session or null) $breaks $calc $emp $empId $date $prev $next $today $tz */
+/* Attendance  Details  (read-only). Vars: $s (session or null) $breaks $calc $emp $empId $date $prev $next $today $tz */
 $field = 'mt-1 rounded-control border border-line bg-raised px-3 py-2.5 text-xs text-ink';
 $label = 'text-micro font-semibold text-muted';
 $head = fn(string $ic, string $t) => '<h2 class="m-0 mb-4 flex items-center gap-2.5 text-sm"><span class="text-brand">' . icon($ic, 18) . '</span>' . e($t) . '</h2>';

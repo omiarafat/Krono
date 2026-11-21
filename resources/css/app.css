@@ -5,7 +5,7 @@
 .icon-button { @apply inline-flex h-8.5 w-8.5 shrink-0 cursor-pointer items-center justify-center rounded-control border border-line bg-surface p-0 text-muted hover:text-brand focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand; }
 
 
-.menu-item { @apply block w-full cursor-pointer rounded-lg border-0 bg-transparent px-3 py-2.5 text-left text-xs font-semibold text-ink hover:bg-raised; }
+.menu-item { @apply flex w-full items-center gap-2.5 cursor-pointer rounded-lg border-0 bg-transparent px-3 py-2.5 text-left text-xs font-semibold text-ink hover:bg-raised; }
 
 /* Sidebar link. Wears a "group/nav" class in the HTML so its tooltip can react to hover. */
 .nav-link {
@@ -43,6 +43,22 @@
 .auth-notice { @apply rounded-xl border border-line bg-soft/60 px-3.5 py-3 text-tiny leading-copy text-muted; }
 .auth-link { @apply font-semibold text-brand no-underline hover:underline; }
 .auth-otp { @apply h-12 w-full min-w-0 rounded-control border border-line bg-surface text-center text-lg font-bold text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand; }
+.setup-steps { @apply m-0 mb-6 flex list-none items-center justify-between gap-2 p-0; }
+.setup-step { @apply flex items-center gap-2 text-nano font-bold text-muted; }
+.setup-dot { @apply flex h-6 w-6 items-center justify-center rounded-full border border-line bg-surface text-nano font-bold text-muted; }
+.setup-step.is-now { @apply text-brand; }
+.setup-step.is-now .setup-dot { @apply border-brand bg-brand text-white; }
+.setup-step.is-done .setup-dot { @apply border-brand bg-brand text-white; }
+.ws-card { @apply m-0 flex items-center gap-3.5 rounded-panel border border-line bg-surface p-4 text-ink; }
+.ws-card.is-active { @apply border-brand bg-soft/60; }
+.ws-card-new { @apply border-dashed hover:border-brand; }
+.ws-card-icon { @apply flex h-11 w-11 shrink-0 items-center justify-center rounded-tile bg-soft text-brand; }
+.choice-card { @apply flex flex-row text-left font-normal cursor-pointer items-center gap-3.5 rounded-panel border border-line bg-surface p-4 has-checked:border-brand has-checked:bg-soft/60 has-focus-visible:outline-2 has-focus-visible:outline-brand; }
+.choice-card.is-disabled { @apply cursor-not-allowed opacity-60; }
+.auth-otp-row { @apply grid grid-cols-6 gap-2; }
+.pw-field { @apply relative; }
+.pw-field .field-input { @apply pr-11; }
+.pw-toggle { @apply absolute inset-y-0 right-0 flex w-11 cursor-pointer items-center justify-center rounded-r-control border-0 bg-transparent p-0 text-muted hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-brand; }
 .field-label { @apply mb-1.75 block text-tiny font-bold text-ink; }
 .field-input { @apply block h-10 w-full rounded-control border border-line bg-surface px-3 text-xs text-ink placeholder:text-muted focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand aria-invalid:border-danger aria-invalid:bg-danger/5; }
 textarea.field-input { @apply h-auto min-h-20 resize-y py-2.5 leading-copy; }
