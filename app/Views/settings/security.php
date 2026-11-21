@@ -13,10 +13,10 @@ include __DIR__ . '/_nav.php';
   </div>
   <form method="post" action="<?= url('/settings/password') ?>" novalidate data-guard data-required="current_password,new_password,confirm_password" autocomplete="off" class="mt-5 max-w-lg"><?= csrf_field() ?>
     <div class="flex flex-col gap-4">
-      <div><label class="field-label" for="pw-cur">Current password</label><input class="field-input" id="pw-cur" type="password" name="current_password" autocomplete="current-password"<?= $bad('current_password') ?>><?= $err('current_password') ?></div>
-      <div><label class="field-label" for="pw-new">New password</label><input class="field-input" id="pw-new" type="password" name="new_password" autocomplete="new-password" maxlength="200"<?= $bad('new_password') ?>><?= $err('new_password') ?>
+      <div><label class="field-label" for="pw-cur">Current password</label><input class="field-input" id="pw-cur" type="password" name="current_password" autocomplete="current-password" placeholder="Enter your current password"<?= $bad('current_password') ?>><?= $err('current_password') ?></div>
+      <div><label class="field-label" for="pw-new">New password</label><input class="field-input" id="pw-new" type="password" name="new_password" autocomplete="new-password" maxlength="200" placeholder="At least 8 characters"<?= $bad('new_password') ?>><?= $err('new_password') ?>
         <p class="mt-1.5 mb-0 text-micro text-muted">At least 8 characters, different from your current password.</p></div>
-      <div><label class="field-label" for="pw-conf">Confirm new password</label><input class="field-input" id="pw-conf" type="password" name="confirm_password" autocomplete="new-password" maxlength="200"<?= $bad('confirm_password') ?>><?= $err('confirm_password') ?></div>
+      <div><label class="field-label" for="pw-conf">Confirm new password</label><input class="field-input" id="pw-conf" type="password" name="confirm_password" autocomplete="new-password" maxlength="200" placeholder="Enter new password again"<?= $bad('confirm_password') ?>><?= $err('confirm_password') ?></div>
     </div>
     <div class="mt-5 flex justify-end"><button type="submit" class="btn btn-primary" data-save disabled>Update password</button></div>
   </form>
