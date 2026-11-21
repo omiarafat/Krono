@@ -59,13 +59,13 @@ $now = new DateTimeImmutable('now', $tz);
         <p class="mt-1.5 mb-0 text-micro text-muted">We will send a code to the new address. Your current email stays active until you confirm it.</p>
       </div>
     </div>
-    <?php $hasOwnTimezone = (string)($profile['timezone'] ?? '') !== ''; ?>
+    <?php $own = (string)($profile['timezone'] ?? '') !== ''; ?>
     <aside class="mt-5 rounded-card border border-brand/25 bg-soft p-4.5" aria-labelledby="tz-note">
       <div class="flex items-start gap-3">
         <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-surface text-brand"><?= icon('globe', 18) ?></span>
         <div class="min-w-0">
           <h3 class="m-0 text-xs" id="tz-note">How timezone and date format work</h3>
-          <p class="mt-1 mb-0 text-tiny leading-copy text-muted">Right now Krono shows your times in <strong class="text-ink"><?= e($tz->getName()) ?></strong> (<?= $hasOwnTimezone ? 'your own choice' : 'the workspace timezone' ?>). It is <strong class="text-ink"><?= e($now->format(Account::tf() . ', ' . Account::df())) ?></strong> for you.</p>
+          <p class="mt-1 mb-0 text-tiny leading-copy text-muted">Right now Krono shows your times in <strong class="text-ink"><?= e($tz->getName()) ?></strong> (<?= $own ? 'your own choice' : 'the workspace timezone' ?>). It is <strong class="text-ink"><?= e($now->format(Account::tf() . ', ' . Account::df())) ?></strong> for you.</p>
           <ul class="mt-2.5 mb-0 flex list-none flex-col gap-1.5 p-0 text-tiny leading-copy text-muted">
             <li class="flex gap-2"><span class="text-brand"><?= icon('check', 13) ?></span><span><strong class="text-ink">Only your screen changes.</strong> Saved work, attendance and time logs are never changed.</span></li>
             <li class="flex gap-2"><span class="text-brand"><?= icon('check', 13) ?></span><span><strong class="text-ink">Want to see the same times as your team?</strong> Keep "Use the workspace timezone".</span></li>
