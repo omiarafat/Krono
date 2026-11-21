@@ -39,5 +39,6 @@ return [
   'building' => '<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 7h2m2 0h2M9 11h2m2 0h2M10 21v-4h4v4"/>',
   'history' => '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
   'info' => '<circle cx="12" cy="12" r="9"/><path d="M12 11v5m0-8v.01"/>',
+  'switch' => '<path d="M17 3l4 4-4 4"/><path d="M3 7h18"/><path d="M7 21l-4-4 4-4"/><path d="M21 17H3"/>',
   'globe' => '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.5 3.5 5.5 3.5 9s-1 6.5-3.5 9c-2.5-2.5-3.5-5.5-3.5-9s1-6.5 3.5-9z"/>',
 ];

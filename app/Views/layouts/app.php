@@ -75,10 +75,10 @@ $tip = 'pointer-events-none absolute left-full top-1/2 z-50 ml-3 hidden -transla
               <span class="flex flex-col gap-0.5 text-tiny max-sm:hidden"><strong><?= e($uname) ?></strong><span class="max-w-40 truncate text-micro text-muted"><?= e((string)(Workspace::current()['name'] ?? 'Workspace')) ?></span></span>
             </summary>
             <div class="absolute right-0 top-full mt-2 z-50 min-w-50 rounded-xl border border-line bg-surface p-1.5 shadow-card">
-              <a class="menu-item no-underline" href="<?= url('/workspaces') ?>">Switch workspace</a>
-              <a class="menu-item no-underline" href="<?= url('/workspaces/new') ?>">Create or upgrade</a>
-              <form method="post" action="<?= url('/open-app') ?>"><?= csrf_field() ?><button class="menu-item" type="submit">Open Krono Desktop</button></form>
-              <form method="post" action="<?= url('/logout') ?>"><?= csrf_field() ?><button class="menu-item" type="submit">Log out</button></form>
+              <a class="menu-item no-underline" href="<?= url('/workspaces') ?>"><?= icon('switch', 16) ?>Switch workspace</a>
+              <a class="menu-item no-underline" href="<?= url('/workspaces/new') ?>"><?= icon('plus', 16) ?>Create or upgrade</a>
+              <form method="post" action="<?= url('/open-app') ?>"><?= csrf_field() ?><button class="menu-item" type="submit"><?= icon('desktop', 16) ?>Open Krono Desktop</button></form>
+              <form method="post" action="<?= url('/logout') ?>"><?= csrf_field() ?><button class="menu-item" type="submit"><?= icon('logout', 16) ?>Log out</button></form>
             </div>
           </details>
         </div>

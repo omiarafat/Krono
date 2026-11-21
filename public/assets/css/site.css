@@ -1923,7 +1923,9 @@
     }
   }
   .menu-item {
-    display: block;
+    display: flex;
+    align-items: center;
+    gap: calc(var(--spacing) * 2.5);
     width: 100%;
     cursor: pointer;
     border-radius: var(--radius-lg);

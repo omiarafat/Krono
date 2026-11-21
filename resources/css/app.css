@@ -5,7 +5,7 @@
 .icon-button { @apply inline-flex h-8.5 w-8.5 shrink-0 cursor-pointer items-center justify-center rounded-control border border-line bg-surface p-0 text-muted hover:text-brand focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand; }
 
 
-.menu-item { @apply block w-full cursor-pointer rounded-lg border-0 bg-transparent px-3 py-2.5 text-left text-xs font-semibold text-ink hover:bg-raised; }
+.menu-item { @apply flex w-full items-center gap-2.5 cursor-pointer rounded-lg border-0 bg-transparent px-3 py-2.5 text-left text-xs font-semibold text-ink hover:bg-raised; }
 
 /* Sidebar link. Wears a "group/nav" class in the HTML so its tooltip can react to hover. */
 .nav-link {
