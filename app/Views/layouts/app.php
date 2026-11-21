@@ -97,6 +97,7 @@ document.addEventListener('click',function(e){
 });})();
 </script>
 <script src="<?= asset('js/krono-ui.js') ?>" defer></script>
+<script src="<?= asset('js/krono-auth.js') ?>" defer></script>
 <script src="<?= asset('js/krono-live.js') ?>" defer></script>
 </body>
 </html>
