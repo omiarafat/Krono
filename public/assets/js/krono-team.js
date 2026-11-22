@@ -9,7 +9,7 @@
 
   function actions(m) {
     var c = m.can || {}, a = [];
-    if (m.kind === 'invite') { if (c.invite) a.push({ k: 'resend', l: 'Resend invitation' }, { k: 'cancel', l: 'Cancel invitation', danger: 1 }); return a; }
+    if (m.kind === 'invite') { if (c.invite) a.push({ k: 'resend', l: 'Resend / get new link' }, { k: 'cancel', l: 'Cancel invitation', danger: 1 }); return a; }
     if (c.role) a.push({ k: 'role', l: 'Change role' });
     if (c.manager) a.push({ k: 'manager', l: m.manager_id ? 'Change manager' : 'Assign manager' });
     if (c.reactivate) a.push({ k: 'reactivate', l: 'Reactivate' });

@@ -1,21 +1,26 @@
 <?php
 final class AuthController {
-    static function showLogin(): void { if (Auth::user()) redirect('/dashboard'); render('auth/login', ['title' => 'Sign in']); }
+    static function showLogin(): void { if (Auth::user()) redirect('/dashboard'); render('auth/login', ['title' => 'Sign in', 'lockedEmail' => self::invitedEmail()]); }
     static function login(): void {
         $email = Auth::normEmail((string)($_POST['email'] ?? ''));
         $r = Auth::attempt($email, (string)($_POST['password'] ?? ''));
         if ($r === 'ok') redirect(TeamController::pendingInvite() ?? '/dashboard');
         if ($r === 'unverified') { $_SESSION['pending_email'] = $email; Auth::sendCode($email); flash('ok', 'Please verify your email to continue.'); redirect('/verify'); }
         $msg = $r === 'locked' ? 'Too many attempts. Try again in ' . Auth::WINDOW_MIN . ' minutes.' : 'Incorrect email or password.';
-        render('auth/login', ['title' => 'Sign in', 'errors' => [$msg]]);
+        render('auth/login', ['title' => 'Sign in', 'errors' => [$msg], 'lockedEmail' => self::invitedEmail()]);
     }
-    static function showRegister(): void { if (Auth::user()) redirect('/dashboard'); render('auth/register', ['title' => 'Create account']); }
+    /** The invited email when the person came from an invitation link (the address cannot be changed), else null. */
+    private static function invitedEmail(): ?string {
+        $t = (string)($_SESSION['invite_token'] ?? ''); $inv = $t !== '' ? Team::invitationByToken($t) : null;
+        return $inv ? Auth::normEmail((string)$inv['email']) : null;
+    }
+    static function showRegister(): void { if (Auth::user()) redirect('/dashboard'); render('auth/register', ['title' => 'Create account', 'lockedEmail' => self::invitedEmail()]); }
     static function register(): void {
-        $name = trim((string)($_POST['name'] ?? '')); $email = Auth::normEmail((string)($_POST['email'] ?? ''));
+        $name = trim((string)($_POST['name'] ?? '')); $locked = self::invitedEmail(); $email = $locked ?? Auth::normEmail((string)($_POST['email'] ?? ''));   // an invitation fixes the email
         $pass = (string)($_POST['password'] ?? '');
         $err = Auth::registrationErrors($name, $email, $pass, (string)($_POST['password_confirm'] ?? ''));
         if (!$err &&!Auth::register($name, $email, $pass)) $err[] = 'An account with this email already exists.';
-        if ($err) { render('auth/register', ['title' => 'Create account', 'errors' => $err]); return; }
+        if ($err) { render('auth/register', ['title' => 'Create account', 'errors' => $err, 'lockedEmail' => $locked]); return; }
         $_SESSION['pending_email'] = $email; Auth::sendCode($email); redirect('/verify');
     }
     static function showVerify(): void { if (empty($_SESSION['pending_email'])) redirect('/login'); render('auth/verify', ['title' => 'Verify your email', 'email' => $_SESSION['pending_email']]); }

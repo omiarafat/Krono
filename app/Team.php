@@ -212,15 +212,33 @@ final class Team {
         return ['Choose what happens to this manager\'s direct reports first.', 0];
     }
 
-    /** Sends the invitation e-mail. Throws when the mail could not be accepted for delivery. */
-    private static function mail(array $ws, string $inviter, string $email, string $roleLabel, string $token): void {
+    /** Tries to e-mail the invitation. The invitation exists either way, so a missing or broken mail setup only means the link is shared by hand. @return bool true when the mail was handed over */
+    private static function deliver(array $ws, string $inviter, string $email, string $roleLabel, string $token): bool {
+        if (!Mailer::available()) return false;
         $link = url('/invite?token=' . $token);
-        Mailer::send($email, 'You are invited to ' . $ws['name'] . ' on Krono', "$inviter invited you to join the workspace \"{$ws['name']}\" on Krono as " . $roleLabel . ".\nAccept the invitation: $link\nThis link works for " . self::INVITE_DAYS . ' days and only for ' . $email . '.');
+        try {
+            Mailer::send($email, 'You are invited to ' . $ws['name'] . ' on Krono', "$inviter invited you to join the workspace \"{$ws['name']}\" on Krono as " . $roleLabel . ".\nAccept the invitation: $link\nThis link works for " . self::INVITE_DAYS . ' days and only for ' . $email . '.');
+            return true;
+        } catch (Throwable $e) { error_log((string)$e); return false; }
+    }
+
+    /** "a***@gmail.com" - shown to people who are not signed in as the invited address. */
+    static function maskEmail(string $email): string {
+        $at = strrpos($email, '@'); if ($at === false || $at < 1) return '***';
+        return mb_substr($email, 0, 1) . str_repeat('*', max(2, min(6, $at - 1))) . substr($email, $at);
+    }
+
+    /** One pending invitation of this workspace for the "link created" page: email, role label, manager, expiry. */
+    static function inviteCard(int $wid, int $id): ?array {
+        $i = Db::q("SELECT i.id, i.email, i.role, i.custom_role_id, i.expires_at, i.created_at, mg.name manager, cr.name custom_name FROM workspace_invitations i LEFT JOIN users mg ON mg.id = i.manager_id
+            LEFT JOIN workspace_roles cr ON cr.id = i.custom_role_id AND cr.workspace_id = i.workspace_id WHERE i.id = ? AND i.workspace_id = ? AND i.status = 'pending' AND i.expires_at > ?", [$id, $wid, self::now()])->fetch();
+        if (!$i) return null;
+        $i['role_label'] = Perm::label($i['role'], $i['custom_role_id'], $i['custom_name']); return $i;
     }
 
     static function invite(array $ws, array $actor, string $email, string $role, int $managerId): array {
         $errors = []; $email = mb_strtolower(trim($email)); $wid = (int)$ws['id'];
-        if (!Perm::can($ws, 'team.invite')) return [['email' => 'You do not have permission to invite members.'], false];
+        if (!Perm::can($ws, 'team.invite')) return [['email' => 'You do not have permission to invite members.'], null];
         $pick = self::resolveRole($ws, $role); $base = $pick[0] ?? '';
         if ($email === '' || mb_strlen($email) > 190 || !filter_var($email, FILTER_VALIDATE_EMAIL)) $errors['email'] = 'Enter a valid email address.';
         if (!$pick) $errors['role'] = 'Choose a role you are allowed to give.';
@@ -231,26 +249,27 @@ final class Team {
             if ($m) $errors['email'] = $m['status'] === 'active' ? 'This person is already a member of the workspace.' : 'This person is deactivated. Reactivate them instead of sending a new invitation.';
             elseif (Db::q("SELECT 1 FROM workspace_invitations WHERE workspace_id = ? AND email = ? AND status = 'pending' AND expires_at > ?", [$wid, $email, self::now()])->fetchColumn()) $errors['email'] = 'An invitation to this address is already pending. Resend it from the members list.';
         }
-        if ($errors) return [$errors, false];
+        if ($errors) return [$errors, null];
         $token = bin2hex(random_bytes(32));
-        try { self::mail($ws, (string)$actor['name'], $email, $pick[2], $token); } catch (Throwable $e) { error_log((string)$e); return [[], true]; }   // second value: the e-mail could not be sent
         Db::q('INSERT INTO workspace_invitations (workspace_id, email, role, custom_role_id, manager_id, token_hash, invited_by, expires_at, created_at) VALUES (?,?,?,?,?,?,?,?,?)',
             [$wid, $email, $base, $pick[1], $managerId ?: null, self::sha($token), (int)$actor['id'], gmdate('Y-m-d H:i:s', time() + self::INVITE_DAYS * 86400), self::now()]);
-        self::audit($wid, (int)$actor['id'], null, 'invite_sent', "$email as {$pick[2]}");
-        return [[], false];
+        $id = (int)Db::pdo()->lastInsertId();
+        $mailed = self::deliver($ws, (string)$actor['name'], $email, $pick[2], $token);
+        self::audit($wid, (int)$actor['id'], null, 'invite_sent', "$email as {$pick[2]}" . ($mailed ? '' : ' (link shared by hand)'));
+        return [[], ['id' => $id, 'token' => $token, 'mailed' => $mailed]];
     }
 
-    /** "resend" | "cancel" a pending invitation. */
-    static function invitation(array $ws, array $actor, int $id, string $do): string {
-        if (!Perm::can($ws, 'team.invite')) return 'You do not have permission to do that.';
+    /** "resend" | "cancel" a pending invitation. Resend makes a fresh link. @return array [error message or '', info for the link page or null] */
+    static function invitation(array $ws, array $actor, int $id, string $do): array {
+        if (!Perm::can($ws, 'team.invite')) return ['You do not have permission to do that.', null];
         $wid = (int)$ws['id']; $i = Db::q("SELECT i.*, cr.name custom_name FROM workspace_invitations i LEFT JOIN workspace_roles cr ON cr.id = i.custom_role_id AND cr.workspace_id = i.workspace_id WHERE i.id = ? AND i.workspace_id = ? AND i.status = 'pending'", [$id, $wid])->fetch();
-        if (!$i || Workspace::ROLES[$i['role']] >= Workspace::ROLES[$ws['role']]) return 'That invitation is not available.';
-        if ($do === 'cancel') { Db::q("UPDATE workspace_invitations SET status = 'cancelled' WHERE id = ?", [$id]); self::audit($wid, (int)$actor['id'], null, 'invite_cancelled', $i['email']); return ''; }
+        if (!$i || Workspace::ROLES[$i['role']] >= Workspace::ROLES[$ws['role']]) return ['That invitation is not available.', null];
+        if ($do === 'cancel') { Db::q("UPDATE workspace_invitations SET status = 'cancelled' WHERE id = ?", [$id]); self::audit($wid, (int)$actor['id'], null, 'invite_cancelled', $i['email']); return ['', null]; }
         $token = bin2hex(random_bytes(32));
-        try { self::mail($ws, (string)$actor['name'], $i['email'], Perm::label($i['role'], $i['custom_role_id'], $i['custom_name']), $token); } catch (Throwable $e) { error_log((string)$e); return 'Could not send the invitation. Try again.'; }
         Db::q('UPDATE workspace_invitations SET token_hash = ?, expires_at = ? WHERE id = ?', [self::sha($token), gmdate('Y-m-d H:i:s', time() + self::INVITE_DAYS * 86400), $id]);
+        $mailed = self::deliver($ws, (string)$actor['name'], $i['email'], Perm::label($i['role'], $i['custom_role_id'], $i['custom_name']), $token);
         self::audit($wid, (int)$actor['id'], null, 'invite_resent', $i['email']);
-        return '';
+        return ['', ['id' => $id, 'token' => $token, 'mailed' => $mailed]];
     }
 
     static function setRole(array $ws, int $actor, int $target, string $role, string $choice): string {
