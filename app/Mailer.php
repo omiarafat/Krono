@@ -6,6 +6,13 @@
  * Sender name/address: MAIL_FROM_NAME, MAIL_FROM. $cfg (optional) can override name / email / reply / smtp for one message.
  */
 final class Mailer {
+    /** True when an invitation / notification e-mail can really be handed over (SMTP is set up, or local development writes it to the mail log). */
+    static function available(): bool {
+        $mode = env('MAIL_MODE', 'log');
+        if ($mode === 'smtp') return (string)env('MAIL_HOST', '') !== '';
+        return env('APP_ENV') === 'local';
+    }
+
     static function send(string $to, string $subject, string $body, ?array $cfg = null): void {
         $smtp = $cfg['smtp'] ?? null;
         if (!$smtp) {

@@ -21,7 +21,7 @@ $reports = '<div data-reports-wrap hidden class="mt-3.5"><label class="field-lab
         <select class="field-input" id="inv-manager" name="manager_id"<?= $bad('manager_id') ?>><option value="">No manager</option><?php foreach ($managers as $id => $n): ?><option value="<?= (int)$id ?>"<?= (int)$iv['manager_id'] === (int)$id ? ' selected' : '' ?>><?= e($n) ?></option><?php endforeach; ?></select><?= $err('manager_id') ?>
         <p class="mt-1.5 mb-0 text-micro text-muted">Optional. A manager can see attendance and reports for direct reports only.</p></div>
     </div>
-    <div class="modal-foot"><button type="button" class="btn" data-modal-close>Cancel</button><button type="submit" class="btn btn-primary" data-m-submit>Send invitation</button></div>
+    <div class="modal-foot"><button type="button" class="btn" data-modal-close>Cancel</button><button type="submit" class="btn btn-primary" data-m-submit>Create invitation</button></div>
   </form>
 </dialog>
 

@@ -6,7 +6,7 @@
   <p class="mt-2 mb-0 text-xs leading-copy text-muted">Use the same account to access your personal and company workspaces.</p>
   <?= flash_html() ?><?= errors_html($errors ?? []) ?>
   <form method="post" action="<?= url('/login') ?>" novalidate class="mt-5 flex flex-col gap-4"><?= csrf_field() ?>
-      <div><label class="field-label" for="l-email">Email address</label><input class="field-input" id="l-email" type="email" name="email" value="<?= old('email') ?>" autocomplete="username" placeholder="you@example.com" required autofocus></div>
+      <div><label class="field-label" for="l-email">Email address</label><input class="field-input" id="l-email" type="email" name="email" value="<?= old('email') !== '' ? old('email') : e((string)($lockedEmail ?? '')) ?>" autocomplete="username" placeholder="you@example.com" required autofocus></div>
       <div><label class="field-label" for="l-pass">Password</label><input class="field-input" id="l-pass" type="password" name="password" autocomplete="current-password" placeholder="Your password" required></div>
     <div class="-mt-1 text-right text-tiny"><a class="auth-link" href="<?= url('/forgot') ?>">Forgot password?</a></div>
     <button class="btn btn-primary w-full" type="submit">Log in</button>

@@ -28,10 +28,22 @@ final class TeamController {
         [$u, $ws] = self::who(); $back = self::back();
         if (!Perm::can($ws, 'team.invite')) { flash('error', 'You do not have permission to do that.', 'Not allowed'); redirect($back); }
         $v = ['email' => mb_strtolower(trim((string)($_POST['email'] ?? ''))), 'role' => (string)($_POST['role'] ?? 'member'), 'manager_id' => (int)($_POST['manager_id'] ?? 0)];
-        try { [$errors, $mailFailed] = Team::invite($ws, $u, $v['email'], $v['role'], $v['manager_id']); }
-        catch (Throwable $e) { error_log((string)$e); $errors = []; $mailFailed = false; $dbFail = true; }
-        if ($errors || $mailFailed || !empty($dbFail)) { http_response_code(422); self::page($u, $ws, Team::cleanFilters(['tab' => 'members']), ['values' => $v, 'errors' => $errors, 'failed' => $mailFailed || !empty($dbFail)]); return; }
-        flash('ok', 'Invitation sent to ' . $v['email'] . '.', 'Invitation sent'); redirect($back);
+        try { [$errors, $info] = Team::invite($ws, $u, $v['email'], $v['role'], $v['manager_id']); $dbFail = false; }
+        catch (Throwable $e) { error_log((string)$e); $errors = []; $info = null; $dbFail = true; }
+        if ($errors || !$info) { http_response_code(422); self::page($u, $ws, Team::cleanFilters(['tab' => 'members']), ['values' => $v, 'errors' => $errors, 'failed' => $dbFail]); return; }
+        self::showCreated($info);
+    }
+
+    /** The link is only known right now (just a hash is stored), so it is kept in the session for the "invitation created" page. */
+    private static function showCreated(array $info): void { $_SESSION['invite_created'] = $info + ['at' => time()]; redirect('/teams/invite/created'); }
+
+    /** "Invitation created" page: status, expiry and the link to copy. */
+    static function created(): void {
+        [$u, $ws] = self::who();
+        if (!Perm::can($ws, 'team.invite')) { flash('error', 'You do not have permission to do that.', 'Not allowed'); redirect('/teams'); }
+        $c = $_SESSION['invite_created'] ?? null; $card = is_array($c) && time() - (int)$c['at'] < 3600 ? Team::inviteCard((int)$ws['id'], (int)$c['id']) : null;
+        if (!$card || !preg_match('/^[0-9a-f]{64}$/', (string)$c['token'])) { flash('error', 'That invitation link is no longer available. Resend the invitation to get a new one.', 'Link not available'); redirect('/teams'); }
+        render('teams/invite-created', ['title' => 'Invitation created', 'user' => $u, 'nav' => 'team', 'crumb' => 'Teams', 'crumb2' => 'Invitation created', 'crumburl' => '/teams', 'ws' => $ws, 'inv' => $card, 'link' => url('/invite?token=' . $c['token']), 'mailed' => !empty($c['mailed']), 'tz' => Workspace::tz($ws)], 'app');
     }
 
     private static function result(string $err, string $ok, string $okTitle, string $errTitle): void {
@@ -62,7 +74,8 @@ final class TeamController {
 
     static function invitation(): void {
         [$u, $ws] = self::who(); $do = ($_POST['do'] ?? '') === 'cancel' ? 'cancel' : 'resend';
-        try { $err = Team::invitation($ws, $u, (int)($_POST['id'] ?? 0), $do); } catch (Throwable $e) { error_log((string)$e); $err = 'Could not save the change. Try again.'; }
+        try { [$err, $info] = Team::invitation($ws, $u, (int)($_POST['id'] ?? 0), $do); } catch (Throwable $e) { error_log((string)$e); $err = 'Could not save the change. Try again.'; $info = null; }
+        if ($err === '' && $info) self::showCreated($info);
         self::result($err, $do === 'cancel' ? 'The invitation was cancelled.' : 'The invitation was sent again.', $do === 'cancel' ? 'Invitation cancelled' : 'Invitation sent', 'Could not update the invitation');
     }
 
@@ -71,7 +84,7 @@ final class TeamController {
     static function showInvite(): void {
         $token = (string)($_GET['token'] ?? ''); $inv = Team::invitationByToken($token); $u = Auth::user();
         if (!$inv) { http_response_code(404); render('teams/invite', ['title' => 'Invitation', 'state' => 'invalid'], 'auth'); return; }
-        if (!$u) { $_SESSION['invite_token'] = $token; render('teams/invite', ['title' => 'Invitation', 'state' => 'signin', 'inv' => $inv], 'auth'); return; }
+        if (!$u) { $_SESSION['invite_token'] = $token; render('teams/invite', ['title' => 'Invitation', 'state' => 'signin', 'inv' => $inv, 'exists' => (bool)Db::q('SELECT 1 FROM users WHERE email = ?', [mb_strtolower((string)$inv['email'])])->fetchColumn()], 'auth'); return; }
         $same = mb_strtolower($u['email']) === mb_strtolower($inv['email']);
         render('teams/invite', ['title' => 'Invitation', 'state' => $same ? 'accept' : 'other', 'inv' => $inv, 'user' => $u, 'token' => $token], 'auth');
     }
