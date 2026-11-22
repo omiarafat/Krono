@@ -15,6 +15,12 @@ final class WsSettings {
 
     static function code(int $id): string { return 'KRW-' . str_pad((string)$id, 5, '0', STR_PAD_LEFT); }
 
+    /** The plan of one workspace: key, label, state. Billing belongs to the workspace, never to a person. Only "free" exists for now. */
+    static function plan(int $wid): array {
+        try { $k = (string)Db::q('SELECT plan FROM workspaces WHERE id = ?', [$wid])->fetchColumn(); } catch (Throwable $e) { $k = 'free'; }
+        return ['key' => 'free', 'label' => 'Free', 'stored' => $k === '' ? 'free' : $k, 'state' => 'Active'];
+    }
+
     static function general(int $wid): array {
         $r = Db::q('SELECT id, name, timezone, created_at FROM workspaces WHERE id = ?', [$wid])->fetch() ?: [];
         $r += Workspace::prefs($wid);

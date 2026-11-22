@@ -14,6 +14,7 @@ final class SettingsController {
         'Workspace Settings' => [
             'general' => ['General', 'building', 'workspace.settings', '/settings/workspace/general', 'Workspace Settings', 'Workspace identity and default preferences'],
             'roles' => ['Roles & Permissions', 'shield', 'workspace.roles', '/settings/workspace/roles', 'Workspace Settings', 'Built-in and custom roles, and what each one can see and do'],
+            'billing' => ['Plans & Billing', 'file', 'workspace.settings', '/settings/workspace/billing', 'Plans & billing', 'Manage the plan for this workspace. Payments are not enabled yet'],
             'audit' => ['Audit Log', 'history', 'workspace.audit', '/settings/workspace/audit', 'Workspace Settings', 'Review important workspace changes'],
         ],
     ];
@@ -48,6 +49,7 @@ final class SettingsController {
         if ($key === 'sessions') $d['sessions'] = Account::sessions($uid);
         if ($key === 'appearance') $d['prefs'] = Account::prefs($uid);
         if ($key === 'general') { $d['g'] = WsSettings::general((int)$ws['id']); $d['zones'] = Account::timezones(); }
+        if ($key === 'billing') $d['plan'] = WsSettings::plan((int)$ws['id']);
         if ($key === 'roles' && !$view) { $d['counts'] = WsSettings::roleCounts((int)$ws['id']); $d['custom'] = Perm::customRoles((int)$ws['id']); $d['people'] = Roles::people((int)$ws['id']); }
         if ($status !== 200) http_response_code($status);
         render('settings/' . (str_starts_with($e[3], '/settings/workspace') ? 'workspace/' : '') . ($view ?? $key), $extra + $d, 'app');
@@ -123,6 +125,7 @@ final class SettingsController {
     // ---------- Workspace Settings (Owner / Admin) ----------
 
     static function general(): void { [$u] = self::open('general'); self::page('general', $u); }
+    static function billing(): void { [$u] = self::open('billing'); self::page('billing', $u); }
     static function roles(): void { [$u] = self::open('roles'); self::page('roles', $u); }
 
     // ---------- custom roles ----------

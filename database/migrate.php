@@ -51,7 +51,7 @@ $add = [
     // Where the person worked on that sign-in (chosen in Krono Desktop at Sign In; a day with both kinds is shown as Hybrid)
     ['attendance_sessions', 'work_location', "VARCHAR(10) NOT NULL DEFAULT 'office'"],
     // Weekly days off: the workspace default (Friday) and a person's own (NULL = follow the workspace)
-    ['workspace_invitations', 'team_id', 'BIGINT UNSIGNED NULL'], ['workspaces', 'type', "VARCHAR(10) NOT NULL DEFAULT 'personal'"], ['workspaces', 'country', 'VARCHAR(2) NULL'], ['workspaces', 'company_name', 'VARCHAR(160) NULL'], ['workspaces', 'industry', 'VARCHAR(30) NULL'], ['workspaces', 'days_off', "VARCHAR(30) NOT NULL DEFAULT 'fri'"], ['workspace_members', 'days_off', 'VARCHAR(30) NULL'],
+    ['workspace_invitations', 'team_id', 'BIGINT UNSIGNED NULL'], ['workspaces', 'plan', "VARCHAR(20) NOT NULL DEFAULT 'free'"], ['workspaces', 'type', "VARCHAR(10) NOT NULL DEFAULT 'personal'"], ['workspaces', 'country', 'VARCHAR(2) NULL'], ['workspaces', 'company_name', 'VARCHAR(160) NULL'], ['workspaces', 'industry', 'VARCHAR(30) NULL'], ['workspaces', 'days_off', "VARCHAR(30) NOT NULL DEFAULT 'fri'"], ['workspace_members', 'days_off', 'VARCHAR(30) NULL'],
 ];
 foreach ($add as [$t, $c, $def]) if (!$has($t, $c)) { $pdo->exec("ALTER TABLE `$t` ADD COLUMN `$c` $def"); echo str_pad("$t.$c", 28), "added\n"; }
 // Every account gets a personal workspace (owner). Existing projects join the workspace of the user who created them.

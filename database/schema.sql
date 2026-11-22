@@ -79,6 +79,7 @@ CREATE TABLE IF NOT EXISTS workspaces (
   timezone VARCHAR(64) NOT NULL DEFAULT 'Asia/Dhaka',
   type VARCHAR(10) NOT NULL DEFAULT 'personal',
   country VARCHAR(2) NULL,
+  plan VARCHAR(20) NOT NULL DEFAULT 'free',
   company_name VARCHAR(160) NULL,
   industry VARCHAR(30) NULL,
   created_by BIGINT UNSIGNED NOT NULL,

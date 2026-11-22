@@ -17,7 +17,7 @@ final class Team {
 
     static function canView(array $ws): bool { return Perm::can($ws, 'team.view'); }
     /** True when the person may change anything on the page (invite, change roles, deactivate). */
-    static function canManage(array $ws): bool { return Perm::can($ws, 'team.invite') || Perm::can($ws, 'team.roles') || Perm::can($ws, 'team.deactivate'); }
+    static function canManage(array $ws): bool { return Perm::can($ws, 'team.invite') || Perm::can($ws, 'team.roles') || Perm::can($ws, 'team.deactivate') || Perm::can($ws, 'team.groups'); }
 
     /** Roles the viewer may give, as token => label. Built-in roles ranked below the viewer, then custom roles whose base rank is below the viewer's
      *  and whose permissions the viewer has all of (nobody can hand out more than they hold). Tokens: "admin" ... "viewer", "c12" for a custom role. */
