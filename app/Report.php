@@ -79,7 +79,7 @@ final class Report {
         if ($f['status'] !== '') { $where .= ' AND t.status = ?'; $args[] = $f['status']; }
         if ($f['priority'] !== '') { $where .= ' AND t.priority = ?'; $args[] = $f['priority']; }
         if ($f['q'] !== '') { $where .= " AND l.work_description LIKE ? ESCAPE '!'"; $args[] = '%' . strtr($f['q'], ['!' => '!!', '%' => '!%', '_' => '!_']) . '%'; }
-        $rows = Db::q("SELECT l.id, l.user_id, l.task_id, l.project_id, l.started_at, l.duration_seconds, l.work_description, t.title task_title, t.status, t.priority, p.name project_name, u.name member
+        $rows = Db::q("SELECT l.id, l.user_id, l.task_id, l.project_id, l.started_at, l.duration_seconds, l.work_description, t.title task_title, t.status, t.priority, p.name project_name, u.name `member`
             FROM task_time_logs l JOIN projects p ON p.id = l.project_id JOIN tasks t ON t.id = l.task_id JOIN users u ON u.id = l.user_id WHERE $where
             ORDER BY l.started_at DESC, l.id DESC LIMIT " . (self::MAX_ROWS + 1), $args)->fetchAll();
         $truncated = count($rows) > self::MAX_ROWS; if ($truncated) array_pop($rows);

@@ -74,7 +74,7 @@ final class Attendance {
         $a = (new DateTimeImmutable($f['from'] . ' 00:00:00', $tz))->setTimezone($utc)->format('Y-m-d H:i:s');
         $b = (new DateTimeImmutable($f['to'] . ' 00:00:00', $tz))->modify('+1 day')->setTimezone($utc)->format('Y-m-d H:i:s');
         $ids = $f['member'] ? [$f['member']] : array_map('intval', array_keys($people));
-        $rows = Db::q('SELECT s.id, s.user_id, s.sign_in_at, s.sign_out_at, s.auto_closed, u.name member FROM attendance_sessions s JOIN users u ON u.id = s.user_id
+        $rows = Db::q('SELECT s.id, s.user_id, s.sign_in_at, s.sign_out_at, s.auto_closed, u.name `member` FROM attendance_sessions s JOIN users u ON u.id = s.user_id
             WHERE s.user_id IN ' . self::in($ids) . ' AND s.sign_in_at >= ? AND s.sign_in_at < ? ORDER BY s.sign_in_at DESC, s.id DESC LIMIT ' . self::MAX_ROWS, array_merge($ids, [$a, $b]))->fetchAll();
         $q = mb_strtolower($f['q']);
         if ($q !== '') $rows = array_values(array_filter($rows, function ($r) use ($q, $tz) {

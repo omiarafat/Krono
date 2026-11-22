@@ -98,7 +98,7 @@ final class TimeLog {
         $from = 'FROM task_time_logs l JOIN projects p ON p.id = l.project_id JOIN tasks t ON t.id = l.task_id JOIN users u ON u.id = l.user_id';
         $c = Db::q("SELECT COUNT(*) n, COALESCE(SUM(l.duration_seconds), 0) s $from WHERE $where", $args)->fetch();
         $total = (int)$c['n']; $pages = max(1, (int)ceil($total / self::PER_PAGE)); $page = min($f['page'], $pages);
-        $rows = Db::q("SELECT l.id, l.user_id, l.task_id, l.project_id, l.started_at, l.duration_seconds, l.work_description, t.title task_title, p.name project_name, u.name member
+        $rows = Db::q("SELECT l.id, l.user_id, l.task_id, l.project_id, l.started_at, l.duration_seconds, l.work_description, t.title task_title, p.name project_name, u.name `member`
             $from WHERE $where ORDER BY l.started_at DESC, l.id DESC LIMIT " . self::PER_PAGE . ' OFFSET ' . (($page - 1) * self::PER_PAGE), $args)->fetchAll();
         return ['items' => $rows, 'total' => $total, 'seconds' => (int)$c['s'], 'pages' => $pages, 'page' => $page];
     }
