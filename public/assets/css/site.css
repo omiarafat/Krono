@@ -514,6 +514,12 @@
   .w-44 {
     width: calc(var(--spacing) * 44);
   }
+  .w-56 {
+    width: calc(var(--spacing) * 56);
+  }
+  .rounded-panel {
+    border-radius: var(--radius-panel);
+  }
   .w-48 {
     width: calc(var(--spacing) * 48);
   }
@@ -621,6 +627,9 @@
   }
   .min-w-180 {
     min-width: calc(var(--spacing) * 180);
+  }
+  .min-w-235 {
+    min-width: calc(var(--spacing) * 235);
   }
   .min-w-190 {
     min-width: calc(var(--spacing) * 190);
@@ -748,6 +757,9 @@
   }
   .gap-x-3\.5 {
     column-gap: calc(var(--spacing) * 3.5);
+  }
+  .gap-x-6 {
+    column-gap: calc(var(--spacing) * 6);
   }
   .gap-x-4 {
     column-gap: calc(var(--spacing) * 4);
@@ -946,6 +958,12 @@
   }
   .bg-soft {
     background-color: var(--soft);
+  }
+  .bg-soft\/40 {
+    background-color: var(--soft);
+    @supports (color: color-mix(in lab, red, red)) {
+      background-color: color-mix(in oklab, var(--soft) 40%, transparent);
+    }
   }
   .bg-soft\/60 {
     background-color: var(--soft);

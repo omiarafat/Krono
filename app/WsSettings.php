@@ -4,16 +4,22 @@ final class WsSettings {
     const PAGE = 10, RANGES = ['7' => 'Last 7 days', '30' => 'Last 30 days', '90' => 'Last 90 days', 'all' => 'All time'];
     const LANGUAGES = ['en' => 'English'], TIME_FORMATS = ['12' => '12-hour (AM/PM)', '24' => '24-hour'];
     const ACTIONS = [
-        'invite_sent' => 'Member invited', 'invite_cancelled' => 'Invitation cancelled', 'invite_resent' => 'Invitation resent', 'invite_accepted' => 'Invitation accepted',
+        'team_created' => 'Team created', 'team_renamed' => 'Team renamed', 'team_deleted' => 'Team deleted', 'team_member_added' => 'Added to team', 'team_member_removed' => 'Removed from team', 'team_leader_set' => 'Team Leader set', 'team_leader_removed' => 'Team Leader removed', 'invite_sent' => 'Member invited', 'invite_cancelled' => 'Invitation cancelled', 'invite_resent' => 'Invitation resent', 'invite_accepted' => 'Invitation accepted',
         'role_changed' => 'Role updated', 'manager_changed' => 'Reports-to changed', 'reactivated' => 'Member reactivated', 'deactivated' => 'Member deactivated',
         'email_change_requested' => 'Email change requested', 'email_changed' => 'Email changed', 'password_changed' => 'Password changed',
         'workspace_updated' => 'Workspace settings updated', 'role_created' => 'Role created', 'role_updated' => 'Role updated', 'role_deleted' => 'Role deleted',
-        'workspace_created' => 'Workspace created', 'workspace_upgraded' => 'Workspace upgraded to company', 'daysoff_requested' => 'Days-off change requested', 'leave_requested' => 'Leave requested', 'request_approved' => 'Request approved', 'request_rejected' => 'Request rejected',
+        'workspace_created' => 'Workspace created', 'report_exported' => 'Report exported', 'workspace_upgraded' => 'Workspace upgraded to company', 'daysoff_requested' => 'Days-off change requested', 'leave_requested' => 'Leave requested', 'request_approved' => 'Request approved', 'request_rejected' => 'Request rejected',
     ];
 
     // ---------- General ----------
 
     static function code(int $id): string { return 'KRW-' . str_pad((string)$id, 5, '0', STR_PAD_LEFT); }
+
+    /** The plan of one workspace: key, label, state. Billing belongs to the workspace, never to a person. Only "free" exists for now. */
+    static function plan(int $wid): array {
+        try { $k = (string)Db::q('SELECT plan FROM workspaces WHERE id = ?', [$wid])->fetchColumn(); } catch (Throwable $e) { $k = 'free'; }
+        return ['key' => 'free', 'label' => 'Free', 'stored' => $k === '' ? 'free' : $k, 'state' => 'Active'];
+    }
 
     static function general(int $wid): array {
         $r = Db::q('SELECT id, name, timezone, created_at FROM workspaces WHERE id = ?', [$wid])->fetch() ?: [];

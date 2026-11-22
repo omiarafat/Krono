@@ -79,6 +79,7 @@ CREATE TABLE IF NOT EXISTS workspaces (
   timezone VARCHAR(64) NOT NULL DEFAULT 'Asia/Dhaka',
   type VARCHAR(10) NOT NULL DEFAULT 'personal',
   country VARCHAR(2) NULL,
+  plan VARCHAR(20) NOT NULL DEFAULT 'free',
   company_name VARCHAR(160) NULL,
   industry VARCHAR(30) NULL,
   created_by BIGINT UNSIGNED NOT NULL,
@@ -358,4 +359,27 @@ CREATE TABLE IF NOT EXISTS password_reset_codes (
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   KEY idx_prc_user (user_id, id),
   CONSTRAINT fk_prc_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Teams (groups) inside a workspace. A person can be in several teams; the Team Leader role exists only inside one team.
+CREATE TABLE IF NOT EXISTS teams (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  workspace_id BIGINT UNSIGNED NOT NULL,
+  name VARCHAR(80) NOT NULL,
+  created_by BIGINT UNSIGNED NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_team_name (workspace_id, name),
+  CONSTRAINT fk_team_ws FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE,
+  CONSTRAINT fk_team_by FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS team_members (
+  team_id BIGINT UNSIGNED NOT NULL,
+  user_id BIGINT UNSIGNED NOT NULL,
+  role ENUM('leader','member') NOT NULL DEFAULT 'member',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (team_id, user_id),
+  KEY idx_tm_user (user_id),
+  CONSTRAINT fk_tm_team FOREIGN KEY (team_id) REFERENCES teams(id) ON DELETE CASCADE,
+  CONSTRAINT fk_tm_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

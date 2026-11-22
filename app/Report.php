@@ -69,7 +69,7 @@ final class Report {
     }
 
     /** The whole result for one filter set: cards, charts and the table page. */
-    static function build(array $ws, array $people, array $f, DateTimeZone $tz): array {
+    static function build(array $ws, array $people, array $f, DateTimeZone $tz, bool $all = false): array {
         $wid = (int)$ws['id']; $ids = $f['member'] ? [$f['member']] : array_map('intval', array_keys($people));
         [$a, $b] = self::bounds($f['from'], $f['to'], $tz);
         $in = '(' . implode(',', array_fill(0, count($ids), '?')) . ')';
@@ -79,7 +79,7 @@ final class Report {
         if ($f['status'] !== '') { $where .= ' AND t.status = ?'; $args[] = $f['status']; }
         if ($f['priority'] !== '') { $where .= ' AND t.priority = ?'; $args[] = $f['priority']; }
         if ($f['q'] !== '') { $where .= " AND l.work_description LIKE ? ESCAPE '!'"; $args[] = '%' . strtr($f['q'], ['!' => '!!', '%' => '!%', '_' => '!_']) . '%'; }
-        $rows = Db::q("SELECT l.id, l.user_id, l.task_id, l.project_id, l.started_at, l.duration_seconds, l.work_description, t.title task_title, t.status, t.priority, p.name project_name, u.name member
+        $rows = Db::q("SELECT l.id, l.user_id, l.task_id, l.project_id, l.started_at, l.duration_seconds, l.work_description, t.title task_title, t.status, t.priority, p.name project_name, u.name `member`
             FROM task_time_logs l JOIN projects p ON p.id = l.project_id JOIN tasks t ON t.id = l.task_id JOIN users u ON u.id = l.user_id WHERE $where
             ORDER BY l.started_at DESC, l.id DESC LIMIT " . (self::MAX_ROWS + 1), $args)->fetchAll();
         $truncated = count($rows) > self::MAX_ROWS; if ($truncated) array_pop($rows);
@@ -108,7 +108,7 @@ final class Report {
         } unset($r);
         uasort($perProject, fn($x, $y) => $y[1] <=> $x[1]);
         $total = count($rows); $pages = max(1, (int)ceil($total / self::PER_PAGE)); $page = min($f['page'], $pages);
-        return ['items' => array_slice($rows, ($page - 1) * self::PER_PAGE, self::PER_PAGE), 'total' => $total, 'pages' => $pages, 'page' => $page, 'seconds' => $sec, 'tasks' => count($tasks),
+        return ['items' => $all ? $rows : array_slice($rows, ($page - 1) * self::PER_PAGE, self::PER_PAGE), 'dayKeys' => array_keys($days), 'total' => $total, 'pages' => $pages, 'page' => $page, 'seconds' => $sec, 'tasks' => count($tasks),
             'attDays' => count($days), 'net' => $net, 'bars' => self::bars($f, $perDay, $tz), 'projects' => array_values($perProject), 'truncated' => $truncated];
     }
 

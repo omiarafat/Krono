@@ -64,7 +64,10 @@ $shade = fn(int $i) => $i >= 5 ? 'color-mix(in srgb, var(--color-muted) 55%, var
     </form>
     <div class="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-3.5" id="report-count" data-live-for="report-results">
       <span class="text-tiny text-muted"><?= $r['total'] === 1 ? '1 entry' : (int)$r['total'] . ' entries' ?> · Automatically filtered</span>
-      <?php if ($filtered): ?><a class="btn h-9" data-live href="<?= url('/reports') ?>"><?= icon('refresh', 15) ?> Reset filters</a><?php endif; ?>
+      <span class="flex flex-wrap items-center gap-2">
+        <?php if ($filtered): ?><a class="btn h-9" data-live href="<?= url('/reports') ?>"><?= icon('refresh', 15) ?> Reset filters</a><?php endif; ?>
+        <?php if (Perm::can($ws, 'reports.export')): ?><a class="btn btn-primary h-9" href="<?= e(url('/reports/pdf' . substr(Report::path($f, ['page' => 1]), strlen('/reports')))) ?>"><?= icon('download', 15) ?> Generate Report</a><?php endif; ?>
+      </span>
     </div>
   </section>
 
