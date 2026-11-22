@@ -14,8 +14,8 @@ $from = $list['total'] ? ($list['page'] - 1) * Team::PER_PAGE + 1 : 0; $to = $fr
   </div>
 <?php else: ?>
   <div class="relative mt-3 overflow-x-auto rounded-xl border border-line">
-    <table class="min-w-215">
-      <thead><tr><th>Member</th><th>Email</th><th>Role</th><th>Reports to</th><th>Status</th><th>Last active</th><th class="w-0">Actions</th></tr></thead>
+    <table class="min-w-235">
+      <thead><tr><th>Member</th><th>Email</th><th>Role</th><th>Reports to</th><th>Team</th><th>Status</th><th>Last active</th><th class="w-0">Actions</th></tr></thead>
       <tbody>
       <?php foreach ($list['items'] as $r):
         $info = $r + ['role_label' => $r['role_name'], 'joined_label' => $r['kind'] === 'invite' ? Ui::day($r['joined'], $tz) : Ui::day($r['joined'], $tz), 'last_label' => Team::lastLabel($r['last'], $tz, true), 'expires_label' => !empty($r['expires']) ? Ui::day($r['expires'], $tz) : '']; ?>
@@ -24,6 +24,7 @@ $from = $list['total'] ? ($list['page'] - 1) * Team::PER_PAGE + 1 : 0; $to = $fr
           <td class="max-w-52 truncate"><?= e($r['email']) ?></td>
           <td><?= $pill($r) ?></td>
           <td><?= $r['manager'] ? e($r['manager']) : '—' ?></td>
+          <td class="max-w-40 truncate"><?= $r['teams'] !== '' ? e($r['teams']) : '—' ?></td>
           <td><?= $state($r['status']) ?></td>
           <td class="whitespace-nowrap"><?= e(Team::lastLabel($r['last'], $tz)) ?></td>
           <td><button type="button" class="icon-button border-transparent bg-transparent" data-team-menu aria-haspopup="menu" aria-label="Actions for <?= e($r['name']) ?>"><?= icon('more', 18) ?></button></td>

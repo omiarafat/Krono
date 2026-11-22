@@ -2,7 +2,7 @@
 $heading = 'Invitation created'; $sub = 'Share the secure link below with ' . $inv['email'] . '.';
 $actions = '<a class="btn" href="' . e(url('/teams')) . '">Back to Teams</a>';
 include ROOT . '/app/Views/partials/page-heading.php';
-$rows = [['Email', $inv['email']], ['Workspace', $ws['name']], ['Role', $inv['role_label']], ['Reports to', $inv['manager'] ?: 'Not set'], ['Expires', Ui::when($inv['expires_at'], $tz) . ' (' . Team::INVITE_DAYS . ' days)']];
+$rows = [['Email', $inv['email']], ['Workspace', $ws['name']], ['Role', $inv['role_label']], ['Reports to', $inv['manager'] ?: 'Not set'], ['Team', $inv['team'] ?: 'No team'], ['Expires', Ui::when($inv['expires_at'], $tz) . ' (' . Team::INVITE_DAYS . ' days)']];
 ?>
 <section class="panel-card mb-6 max-w-3xl p-5.5 max-sm:p-4" aria-labelledby="ic-title" data-invite-link>
   <div class="mb-4 flex items-start justify-between gap-3"><div class="flex items-center gap-3.5"><span class="ws-card-icon"><?= icon('check', 20) ?></span><div><h2 class="m-0 text-base" id="ic-title">Invitation ready</h2><p class="mt-1 mb-0 text-xs text-muted">The person joins by opening the link and signing in or creating an account with this email.</p></div></div><span class="pill">Pending</span></div>

@@ -4,7 +4,7 @@ final class WsSettings {
     const PAGE = 10, RANGES = ['7' => 'Last 7 days', '30' => 'Last 30 days', '90' => 'Last 90 days', 'all' => 'All time'];
     const LANGUAGES = ['en' => 'English'], TIME_FORMATS = ['12' => '12-hour (AM/PM)', '24' => '24-hour'];
     const ACTIONS = [
-        'invite_sent' => 'Member invited', 'invite_cancelled' => 'Invitation cancelled', 'invite_resent' => 'Invitation resent', 'invite_accepted' => 'Invitation accepted',
+        'team_created' => 'Team created', 'team_renamed' => 'Team renamed', 'team_deleted' => 'Team deleted', 'team_member_added' => 'Added to team', 'team_member_removed' => 'Removed from team', 'team_leader_set' => 'Team Leader set', 'team_leader_removed' => 'Team Leader removed', 'invite_sent' => 'Member invited', 'invite_cancelled' => 'Invitation cancelled', 'invite_resent' => 'Invitation resent', 'invite_accepted' => 'Invitation accepted',
         'role_changed' => 'Role updated', 'manager_changed' => 'Reports-to changed', 'reactivated' => 'Member reactivated', 'deactivated' => 'Member deactivated',
         'email_change_requested' => 'Email change requested', 'email_changed' => 'Email changed', 'password_changed' => 'Password changed',
         'workspace_updated' => 'Workspace settings updated', 'role_created' => 'Role created', 'role_updated' => 'Role updated', 'role_deleted' => 'Role deleted',
