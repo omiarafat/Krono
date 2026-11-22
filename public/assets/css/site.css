@@ -517,6 +517,9 @@
   .w-56 {
     width: calc(var(--spacing) * 56);
   }
+  .rounded-panel {
+    border-radius: var(--radius-panel);
+  }
   .w-48 {
     width: calc(var(--spacing) * 48);
   }

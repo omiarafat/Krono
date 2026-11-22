@@ -28,6 +28,7 @@ $routes = [
     'POST /settings/avatar' => [SettingsController::class, 'uploadPhoto'], 'POST /settings/avatar/remove' => [SettingsController::class, 'removePhoto'], 'GET /avatar' => [Avatar::class, 'serve'],
     'GET /settings/workspace' => fn() => redirect('/settings/workspace/general'), 'GET /settings/workspace/general' => [SettingsController::class, 'general'], 'POST /settings/workspace/general' => [SettingsController::class, 'saveGeneral'],
     'GET /settings/workspace/roles' => [SettingsController::class, 'roles'], 'GET /settings/workspace/roles/edit' => [SettingsController::class, 'roleForm'], 'POST /settings/workspace/roles/save' => [SettingsController::class, 'saveRole'], 'POST /settings/workspace/roles/delete' => [SettingsController::class, 'deleteRole'],
+    'GET /settings/workspace/billing' => [SettingsController::class, 'billing'],
     'GET /settings/workspace/audit' => [SettingsController::class, 'audit'], 'GET /settings/workspace/audit/export' => [SettingsController::class, 'auditCsv'],
     'POST /settings/password' => [SettingsController::class, 'password'], 'POST /settings/sessions/revoke' => [SettingsController::class, 'revoke'], 'POST /settings/sessions/revoke-others' => [SettingsController::class, 'revokeOthers'],
     'POST /requests/days' => [RequestController::class, 'days'], 'POST /requests/leave' => [RequestController::class, 'leave'], 'POST /requests/cancel' => [RequestController::class, 'cancel'], 'POST /requests/decide' => [RequestController::class, 'decide'],

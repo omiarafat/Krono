@@ -3,7 +3,7 @@
  * Teams (groups) inside one workspace, and the Team Leader.
  *  - A team belongs to ONE workspace; a person can be in several teams. Teams never create a login or a separate workspace.
  *  - Team Leader is a role INSIDE one team (team_members.role = 'leader'), not a workspace role: a leader can add and remove people of that team only.
- *  - Creating, renaming, deleting a team and choosing leaders needs the permission "team.roles" (Owner / Admin). Deleting a team never removes people from the workspace.
+ *  - Creating, renaming, deleting a team and choosing leaders needs the permission "team.groups" (Manage teams; Owner / Admin have it). Deleting a team never removes people from the workspace.
  *  - Who sees a team: scope "all" sees every team; everyone else only the teams they are in. Only active workspace members can be in a team.
  *  - Every change is written to the audit log.
  */
@@ -13,7 +13,7 @@ final class Groups {
     private static function now(): string { return gmdate('Y-m-d H:i:s'); }
     private static function whole(array $ws): bool { return Perm::scope($ws) === 'all'; }
     /** May the person create / rename / delete teams and choose leaders? */
-    static function canAdmin(array $ws): bool { return Perm::can($ws, 'team.roles'); }
+    static function canAdmin(array $ws): bool { return Perm::can($ws, 'team.groups'); }
 
     /** Teams the person may see, with member count and leaders. */
     static function visible(array $ws, int $uid): array {
