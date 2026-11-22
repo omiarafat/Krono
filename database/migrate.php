@@ -54,8 +54,14 @@ $add = [
     ['workspace_invitations', 'team_id', 'BIGINT UNSIGNED NULL'], ['workspaces', 'plan', "VARCHAR(20) NOT NULL DEFAULT 'free'"], ['workspaces', 'type', "VARCHAR(10) NOT NULL DEFAULT 'personal'"], ['workspaces', 'country', 'VARCHAR(2) NULL'], ['workspaces', 'company_name', 'VARCHAR(160) NULL'], ['workspaces', 'industry', 'VARCHAR(30) NULL'], ['workspaces', 'days_off', "VARCHAR(30) NOT NULL DEFAULT 'fri'"], ['workspace_members', 'days_off', 'VARCHAR(30) NULL'],
 ];
 foreach ($add as [$t, $c, $def]) if (!$has($t, $c)) { $pdo->exec("ALTER TABLE `$t` ADD COLUMN `$c` $def"); echo str_pad("$t.$c", 28), "added\n"; }
-// Every account gets a personal workspace (owner). Existing projects join the workspace of the user who created them.
-foreach (Db::q('SELECT id FROM users')->fetchAll(PDO::FETCH_COLUMN) as $uid) Workspace::ensureFor((int)$uid);
+// New accounts create their first workspace on the setup page. Only an old account that already owns projects but has no workspace yet gets one here, so those projects are not left without a home.
+foreach (Db::q('SELECT DISTINCT u.id, u.name FROM users u JOIN projects p ON p.created_by = u.id WHERE p.workspace_id IS NULL') ->fetchAll() as $u) {
+    if (Workspace::forUser((int)$u['id'])) continue;
+    $first = trim((string)strtok((string)$u['name'], ' '));
+    Workspace::create((int)$u['id'], ($first !== '' ? $first : 'My') . "'s Workspace", (string)env('APP_TIMEZONE', 'Asia/Dhaka'));
+    echo "workspace created for old account #{$u['id']}\n";
+}
+// Existing projects join the workspace of the user who created them.
 $n = Db::q('UPDATE projects p SET p.workspace_id = (SELECT m.workspace_id FROM workspace_members m WHERE m.user_id = p.created_by ORDER BY m.created_at LIMIT 1) WHERE p.workspace_id IS NULL')->rowCount();
 if ($n) echo "projects linked to a workspace: $n\n";
 echo "Done.\n";
