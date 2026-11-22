@@ -69,7 +69,7 @@ final class Report {
     }
 
     /** The whole result for one filter set: cards, charts and the table page. */
-    static function build(array $ws, array $people, array $f, DateTimeZone $tz): array {
+    static function build(array $ws, array $people, array $f, DateTimeZone $tz, bool $all = false): array {
         $wid = (int)$ws['id']; $ids = $f['member'] ? [$f['member']] : array_map('intval', array_keys($people));
         [$a, $b] = self::bounds($f['from'], $f['to'], $tz);
         $in = '(' . implode(',', array_fill(0, count($ids), '?')) . ')';
@@ -108,7 +108,7 @@ final class Report {
         } unset($r);
         uasort($perProject, fn($x, $y) => $y[1] <=> $x[1]);
         $total = count($rows); $pages = max(1, (int)ceil($total / self::PER_PAGE)); $page = min($f['page'], $pages);
-        return ['items' => array_slice($rows, ($page - 1) * self::PER_PAGE, self::PER_PAGE), 'total' => $total, 'pages' => $pages, 'page' => $page, 'seconds' => $sec, 'tasks' => count($tasks),
+        return ['items' => $all ? $rows : array_slice($rows, ($page - 1) * self::PER_PAGE, self::PER_PAGE), 'dayKeys' => array_keys($days), 'total' => $total, 'pages' => $pages, 'page' => $page, 'seconds' => $sec, 'tasks' => count($tasks),
             'attDays' => count($days), 'net' => $net, 'bars' => self::bars($f, $perDay, $tz), 'projects' => array_values($perProject), 'truncated' => $truncated];
     }
 
