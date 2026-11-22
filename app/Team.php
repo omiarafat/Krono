@@ -65,8 +65,8 @@ final class Team {
     }
 
     private static function inviteRows(int $wid): array {
-        return Db::q("SELECT i.id, i.email, i.role, i.custom_role_id, cr.name custom_name, i.manager_id, i.created_at, i.expires_at, mg.name manager, ib.name invited_by
-            FROM workspace_invitations i LEFT JOIN users mg ON mg.id = i.manager_id LEFT JOIN users ib ON ib.id = i.invited_by LEFT JOIN workspace_roles cr ON cr.id = i.custom_role_id AND cr.workspace_id = i.workspace_id
+        return Db::q("SELECT i.id, i.email, i.role, i.custom_role_id, cr.name custom_name, i.manager_id, i.created_at, i.expires_at, mg.name manager, tm.name team, ib.name invited_by
+            FROM workspace_invitations i LEFT JOIN users mg ON mg.id = i.manager_id LEFT JOIN teams tm ON tm.id = i.team_id AND tm.workspace_id = i.workspace_id LEFT JOIN users ib ON ib.id = i.invited_by LEFT JOIN workspace_roles cr ON cr.id = i.custom_role_id AND cr.workspace_id = i.workspace_id
             WHERE i.workspace_id = ? AND i.status = 'pending' AND i.expires_at > ? ORDER BY i.id DESC", [$wid, self::now()])->fetchAll();
     }
 
@@ -86,19 +86,19 @@ final class Team {
         $reports = []; foreach ($rows as $r) if ($r['status'] === 'active' && $r['manager_id']) $reports[(int)$r['manager_id']] = ($reports[(int)$r['manager_id']] ?? 0) + 1;
         if (!$whole) $rows = array_values(array_filter($rows, fn($r) => (int)$r['user_id'] === $uid || (int)$r['manager_id'] === $uid));
         $last = self::lastActive(array_map(fn($r) => (int)$r['user_id'], $rows)); $out = [];
-        $own = DaysOff::ownMap($wid); $wsOff = DaysOff::workspaceCsv($wid); $req = DaysOff::pendingFor($ws, $uid, Workspace::tz($ws));
+        $teamNames = Groups::namesByUser($wid); $own = DaysOff::ownMap($wid); $wsOff = DaysOff::workspaceCsv($wid); $req = DaysOff::pendingFor($ws, $uid, Workspace::tz($ws));
         foreach ($rows as $r) {
             $id = (int)$r['user_id']; $cid = (int)($r['custom_role_id'] ?? 0); $act = fn(string $perm) => $r['status'] === 'active' && self::canActOn($ws, $uid, $r['role'], $id, $perm);
             $out[] = ['kind' => 'member', 'id' => $id, 'user_id' => $id, 'name' => $r['name'], 'email' => $r['email'], 'role' => $r['role'], 'custom_role_id' => $cid, 'role_token' => $cid && $r['custom_name'] ? 'c' . $cid : $r['role'], 'role_name' => Perm::label($r['role'], $cid, $r['custom_name']), 'manager_id' => $r['manager_id'] ? (int)$r['manager_id'] : 0, 'manager' => $r['manager'],
                 'status' => $r['status'], 'joined' => $r['joined'], 'last' => $last[$id] ?? null, 'reports' => $reports[$id] ?? 0, 'self' => $id === $uid,
-                'days_off' => DaysOff::label($own[$id] ?? $wsOff), 'days_custom' => ($own[$id] ?? null) !== null, 'requests' => $r['status'] === 'active' ? ($req[$id] ?? []) : [],
+                'teams' => implode(', ', $teamNames[$id] ?? []), 'days_off' => DaysOff::label($own[$id] ?? $wsOff), 'days_custom' => ($own[$id] ?? null) !== null, 'requests' => $r['status'] === 'active' ? ($req[$id] ?? []) : [],
                 'can' => ['role' => $act('team.roles'), 'manager' => $act('team.roles') && in_array($r['role'], self::REPORTING, true), 'deactivate' => $act('team.deactivate'),
                           'reactivate' => $r['status'] === 'deactivated' && self::canActOn($ws, $uid, $r['role'], $id, 'team.deactivate')]];
         }
         if ($whole || Perm::can($ws, 'team.invite')) foreach (self::inviteRows($wid) as $i) {
             $icid = (int)($i['custom_role_id'] ?? 0);
             $out[] = ['kind' => 'invite', 'id' => (int)$i['id'], 'user_id' => 0, 'name' => ucfirst((string)strtok($i['email'], '@')), 'email' => $i['email'], 'role' => $i['role'], 'custom_role_id' => $icid, 'role_token' => $icid && $i['custom_name'] ? 'c' . $icid : $i['role'], 'role_name' => Perm::label($i['role'], $icid, $i['custom_name']), 'manager_id' => $i['manager_id'] ? (int)$i['manager_id'] : 0, 'manager' => $i['manager'],
-                'status' => 'invited', 'joined' => $i['created_at'], 'last' => null, 'reports' => 0, 'self' => false, 'invited_by' => $i['invited_by'], 'expires' => $i['expires_at'],
+                'status' => 'invited', 'teams' => (string)($i['team'] ?? ''), 'joined' => $i['created_at'], 'last' => null, 'reports' => 0, 'self' => false, 'invited_by' => $i['invited_by'], 'expires' => $i['expires_at'],
                 'can' => ['role' => false, 'manager' => false, 'deactivate' => false, 'reactivate' => false, 'invite' => Perm::can($ws, 'team.invite') && Workspace::ROLES[$i['role']] < Workspace::ROLES[$ws['role']]]];
         }
         usort($out, fn($a, $b) => [-Workspace::ROLES[$a['role']], $a['custom_role_id'] ? 1 : 0, mb_strtolower($a['name'])] <=> [-Workspace::ROLES[$b['role']], $b['custom_role_id'] ? 1 : 0, mb_strtolower($b['name'])]);
@@ -122,12 +122,12 @@ final class Team {
     static function cleanFilters(array $q): array {
         $role = (string)($q['role'] ?? ''); $st = (string)($q['status'] ?? ''); $mg = (string)($q['manager'] ?? '');
         return ['q' => mb_substr(trim((string)($q['q'] ?? '')), 0, 100), 'role' => isset(self::ROLE_LABEL[$role]) || preg_match('/^c\d{1,9}$/', $role) ? $role : '', 'status' => in_array($st, ['active', 'invited', 'deactivated'], true) ? $st : '',
-            'manager' => $mg === 'none' || ctype_digit($mg) ? $mg : '', 'page' => max(1, (int)($q['page'] ?? 1)), 'tab' => ($q['tab'] ?? '') === 'structure' ? 'structure' : 'members'];
+            'manager' => $mg === 'none' || ctype_digit($mg) ? $mg : '', 'page' => max(1, (int)($q['page'] ?? 1)), 'tab' => in_array($q['tab'] ?? '', ['structure', 'groups'], true) ? $q['tab'] : 'members'];
     }
 
     static function path(array $f, array $over = []): string {
         $f = array_merge($f, $over); $q = [];
-        if ($f['tab'] === 'structure') $q['tab'] = 'structure';
+        if (in_array($f['tab'], ['structure', 'groups'], true)) $q['tab'] = $f['tab'];
         foreach (['q', 'role', 'status', 'manager'] as $k) if ($f[$k] !== '') $q[$k] = $f[$k];
         if ((int)$f['page'] > 1) $q['page'] = (int)$f['page'];
         return '/teams' . ($q ? '?' . http_build_query($q) : '');
@@ -230,19 +230,20 @@ final class Team {
 
     /** One pending invitation of this workspace for the "link created" page: email, role label, manager, expiry. */
     static function inviteCard(int $wid, int $id): ?array {
-        $i = Db::q("SELECT i.id, i.email, i.role, i.custom_role_id, i.expires_at, i.created_at, mg.name manager, cr.name custom_name FROM workspace_invitations i LEFT JOIN users mg ON mg.id = i.manager_id
+        $i = Db::q("SELECT i.id, i.email, i.role, i.custom_role_id, i.expires_at, i.created_at, mg.name manager, tm.name team, cr.name custom_name FROM workspace_invitations i LEFT JOIN users mg ON mg.id = i.manager_id LEFT JOIN teams tm ON tm.id = i.team_id AND tm.workspace_id = i.workspace_id
             LEFT JOIN workspace_roles cr ON cr.id = i.custom_role_id AND cr.workspace_id = i.workspace_id WHERE i.id = ? AND i.workspace_id = ? AND i.status = 'pending' AND i.expires_at > ?", [$id, $wid, self::now()])->fetch();
         if (!$i) return null;
         $i['role_label'] = Perm::label($i['role'], $i['custom_role_id'], $i['custom_name']); return $i;
     }
 
-    static function invite(array $ws, array $actor, string $email, string $role, int $managerId): array {
+    static function invite(array $ws, array $actor, string $email, string $role, int $managerId, int $teamId = 0): array {
         $errors = []; $email = mb_strtolower(trim($email)); $wid = (int)$ws['id'];
         if (!Perm::can($ws, 'team.invite')) return [['email' => 'You do not have permission to invite members.'], null];
         $pick = self::resolveRole($ws, $role); $base = $pick[0] ?? '';
         if ($email === '' || mb_strlen($email) > 190 || !filter_var($email, FILTER_VALIDATE_EMAIL)) $errors['email'] = 'Enter a valid email address.';
         if (!$pick) $errors['role'] = 'Choose a role you are allowed to give.';
         if ($managerId && (!in_array($base, self::REPORTING, true) || !self::activeManager($wid, $managerId))) $errors['manager_id'] = in_array($base, self::REPORTING, true) ? 'Choose an active manager from the list.' : 'Only members and viewers report to a manager.';
+        if ($teamId && !isset(Groups::assignable($ws, (int)$actor['id'])[$teamId])) $errors['team_id'] = 'Choose one of the teams you are allowed to add people to.';
         if (!$errors) {
             $u = Db::q('SELECT id FROM users WHERE email = ?', [$email])->fetchColumn();
             $m = $u ? self::member($wid, (int)$u) : null;
@@ -251,8 +252,8 @@ final class Team {
         }
         if ($errors) return [$errors, null];
         $token = bin2hex(random_bytes(32));
-        Db::q('INSERT INTO workspace_invitations (workspace_id, email, role, custom_role_id, manager_id, token_hash, invited_by, expires_at, created_at) VALUES (?,?,?,?,?,?,?,?,?)',
-            [$wid, $email, $base, $pick[1], $managerId ?: null, self::sha($token), (int)$actor['id'], gmdate('Y-m-d H:i:s', time() + self::INVITE_DAYS * 86400), self::now()]);
+        Db::q('INSERT INTO workspace_invitations (workspace_id, email, role, custom_role_id, manager_id, team_id, token_hash, invited_by, expires_at, created_at) VALUES (?,?,?,?,?,?,?,?,?,?)',
+            [$wid, $email, $base, $pick[1], $managerId ?: null, $teamId ?: null, self::sha($token), (int)$actor['id'], gmdate('Y-m-d H:i:s', time() + self::INVITE_DAYS * 86400), self::now()]);
         $id = (int)Db::pdo()->lastInsertId();
         $mailed = self::deliver($ws, (string)$actor['name'], $email, $pick[2], $token);
         self::audit($wid, (int)$actor['id'], null, 'invite_sent', "$email as {$pick[2]}" . ($mailed ? '' : ' (link shared by hand)'));
@@ -337,6 +338,8 @@ final class Team {
         $pdo = Db::pdo(); $pdo->beginTransaction();
         try {
             if (!$existing) Db::q("INSERT INTO workspace_members (workspace_id, user_id, role, custom_role_id, manager_id, status, created_at) VALUES (?,?,?,?,?, 'active', ?)", [$wid, $uid, $inv['role'], $inv['custom_role_id'] ?? null, $inv['manager_id'] ?: null, self::now()]);
+            if (!empty($inv['team_id']) && Db::q('SELECT 1 FROM teams WHERE id = ? AND workspace_id = ?', [(int)$inv['team_id'], $wid])->fetchColumn())
+                Db::q("INSERT INTO team_members (team_id, user_id, role, created_at) SELECT ?, ?, 'member', ? WHERE NOT EXISTS (SELECT 1 FROM team_members WHERE team_id = ? AND user_id = ?)", [(int)$inv['team_id'], $uid, self::now(), (int)$inv['team_id'], $uid]);
             Db::q("UPDATE workspace_invitations SET status = 'accepted', accepted_at = ? WHERE id = ?", [self::now(), (int)$inv['id']]);
             self::audit($wid, $uid, $uid, 'invite_accepted', Perm::label($inv['role'], $inv['custom_role_id'] ?? null, !empty($inv['custom_role_id']) ? (Perm::custom($wid, (int)$inv['custom_role_id'])['name'] ?? null) : null)); $pdo->commit();
         } catch (Throwable $e) { if ($pdo->inTransaction()) $pdo->rollBack(); error_log((string)$e); return 'Could not join the workspace. Try again.'; }

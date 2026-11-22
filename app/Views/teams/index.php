@@ -1,18 +1,20 @@
 <?php
 /* Teams. Vars: $ws $tz $f $failed $manage $counts $managers $eligible $roles $inviteForm $back  + ($list = members page) or ($tree = manager cards) */
-$structure = $f['tab'] === 'structure';
-$heading = 'Teams'; $sub = $structure ? 'See who reports to each manager and manage direct assignments.' : 'Manage members, reporting relationships and workspace access.';
-$actions = !$manage ? '' : ($structure
+$structure = $f['tab'] === 'structure'; $groupsTab = $f['tab'] === 'groups';
+$heading = 'Teams'; $sub = $groupsTab ? 'Group people into teams and choose a Team Leader for each.' : ($structure ? 'See who reports to each manager and manage direct assignments.' : 'Manage members, reporting relationships and workspace access.');
+$actions = !$manage || $groupsTab ? '' : ($structure
     ? '<button type="button" class="btn btn-primary" data-modal-open="assign-modal">' . icon('plus', 16) . ' Assign Member</button>'
     : '<button type="button" class="btn btn-primary" data-modal-open="invite-modal">' . icon('plus', 16) . ' Invite Member</button>');
 include ROOT . '/app/Views/partials/page-heading.php';
 $c = $counts;
-$stats = $structure
+$stats = $groupsTab
+    ? [['team', 'Teams', (string)count($groups ?? []), 'In this workspace'], ['user', 'People in teams', (string)array_sum(array_column($groups ?? [], 'members')), 'Counted per team'], ['shield', 'Team Leaders', (string)count(array_filter($groups ?? [], fn($g) => $g['leaders'])), 'Teams with a leader'], ['check', 'Without a leader', (string)count(array_filter($groups ?? [], fn($g) => !$g['leaders'])), 'Can be assigned']]
+    : ($structure
     ? [['team', 'Managers', (string)$c['managers'], 'In this workspace'], ['user', 'Assigned employees', (string)$c['assigned'], 'Direct reports only'], ['alert', 'Unassigned members', (string)$c['unassigned'], 'Can be assigned'], ['shield', 'Scope policy', 'Direct', 'No indirect reports']]
-    : [['team', 'Total members', (string)$c['total'], $c['active'] . ' active'], ['check', 'Active members', (string)$c['active'], 'Across workspace'], ['file', 'Pending invitations', (string)$c['invited'], 'Awaiting response'], ['team', 'Managers', (string)$c['managers'], 'Direct reports tracked']];
+    : [['team', 'Total members', (string)$c['total'], $c['active'] . ' active'], ['check', 'Active members', (string)$c['active'], 'Across workspace'], ['file', 'Pending invitations', (string)$c['invited'], 'Awaiting response'], ['team', 'Managers', (string)$c['managers'], 'Direct reports tracked']]);
 $select = 'h-10 cursor-pointer rounded-control border border-line bg-surface px-3 text-tiny font-semibold text-muted hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand';
 $link = fn(array $o = []) => url(Team::path($f, $o));
-$tabs = ['members' => ['Members', 'team', $c['total']], 'structure' => ['Reporting Structure', 'team', null]];
+$tabs = ['members' => ['Members', 'team', $c['total']], 'groups' => ['Teams', 'team', null]] + ($manage ? ['structure' => ['Reporting Structure', 'team', null]] : []);
 ?>
 <div class="flex flex-col gap-4.5 pb-6.5">
   <div class="grid grid-cols-4 gap-3.5 max-laptop:grid-cols-2 max-sm:grid-cols-1">
@@ -25,7 +27,6 @@ $tabs = ['members' => ['Members', 'team', $c['total']], 'structure' => ['Reporti
   </div>
 
   <section class="panel-card overflow-hidden">
-    <?php if ($manage): ?>
     <nav class="flex gap-6 border-b border-line px-5.5 pt-3.5" aria-label="Teams sections">
       <?php foreach ($tabs as $k => [$label, $ic, $n]): $on = $f['tab'] === $k; ?>
         <a class="-mb-px inline-flex items-center gap-2 border-b-2 pt-1 pb-3 text-xs font-bold no-underline <?= $on ? 'border-brand text-brand' : 'border-transparent text-muted hover:text-ink' ?>" href="<?= e(url(Team::path(['tab' => $k, 'q' => '', 'role' => '', 'status' => '', 'manager' => '', 'page' => 1]))) ?>"<?= $on ? ' aria-current="page"' : '' ?>>
@@ -33,7 +34,6 @@ $tabs = ['members' => ['Members', 'team', $c['total']], 'structure' => ['Reporti
         </a>
       <?php endforeach; ?>
     </nav>
-    <?php endif; ?>
 
     <?php if ($failed): ?>
       <div class="flex flex-col items-center px-10 py-12 text-center" role="alert">
@@ -42,6 +42,8 @@ $tabs = ['members' => ['Members', 'team', $c['total']], 'structure' => ['Reporti
         <p class="mt-1.5 mb-5 max-w-md text-xs leading-copy text-muted">We couldn't load the latest data. Try again in a moment.</p>
         <a class="btn btn-primary" href="<?= e($link()) ?>">Try again</a>
       </div>
+    <?php elseif ($groupsTab): ?>
+      <?php include __DIR__ . '/_groups.php'; ?>
     <?php elseif ($structure): ?>
       <div class="p-5.5">
         <div class="flex flex-wrap items-start justify-between gap-3">
