@@ -12,7 +12,8 @@ final class WorkspaceController {
     static function switch(): void {
         $u = self::user(); $id = (int)($_POST['workspace_id'] ?? 0);
         if ($id <= 0 || !Workspace::setCurrent((int)$u['id'], $id)) { flash('error', 'You are not a member of that workspace.'); redirect('/workspaces'); }
-        redirect('/dashboard');
+        $next = (string)($_POST['next'] ?? '');   // only our own pages
+        redirect(preg_match('#^/(dashboard|tasks|time-tracking|projects)$|^/(task|project)\?id=\d+$#', $next) ? $next : '/dashboard');
     }
 
     private static function eligible(int $uid): array {   // personal workspaces the person owns

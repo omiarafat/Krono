@@ -8,6 +8,7 @@ if ($any || $failed) { $heading = 'Time Tracking'; $sub = 'Review saved work ses
 else { $heading = 'Track time with Krono Desktop'; $sub = 'Install the lightweight Windows app to control attendance and task timers. Your saved history will appear here.'; $crumb = 'Track time with Krono Desktop'; }
 $actions = $dl;
 include ROOT . '/app/Views/partials/page-heading.php';
+$scopeBase = '/time-tracking'; $scopeNow = 'this'; include ROOT . '/app/Views/partials/scope-toggle.php';
 $select = 'h-10 cursor-pointer rounded-control border border-line bg-surface px-3 text-tiny font-semibold text-muted hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand';
 $link = fn(array $o = []) => url(TimeLog::path($f, $o));
 $tw = fn(int $n, string $w) => $n . ' ' . $w . ($n === 1 ? '' : 's');

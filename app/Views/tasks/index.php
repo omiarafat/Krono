@@ -5,6 +5,7 @@ $canAdd = (bool)$addable;
 $heading = 'Tasks'; $sub = 'Plan, assign and review tasks across projects';
 $actions = $canAdd ? '<button type="button" class="btn btn-primary" data-modal-open="task-modal">' . icon('plus', 16) . ' Add task</button>' : '';
 include ROOT . '/app/Views/partials/page-heading.php';
+$scopeBase = '/tasks'; $scopeNow = 'this'; include ROOT . '/app/Views/partials/scope-toggle.php';
 $select = 'h-10 cursor-pointer rounded-control border border-line bg-surface px-3 text-tiny font-semibold text-muted hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand';
 $link = fn(array $o = []) => url(Task::path($f, $o));
 $tw = fn(int $n, string $w) => $n . ' ' . $w . ($n === 1 ? '' : 's');

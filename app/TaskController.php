@@ -27,7 +27,7 @@ final class TaskController {
             'projects' => $projects, 'addable' => $addable, 'failed' => $failed, 'taskForm' => $form, 'back' => Task::path($f)], 'app');
     }
 
-    static function index(): void { [$u, $ws] = self::who(); Perm::gate($ws, 'tasks.view', $u, 'tasks', 'Tasks'); self::page($u, $ws, Task::cleanFilters($_GET)); }
+    static function index(): void { [$u, $ws] = self::who(); if (EverywhereController::wants($u)) { EverywhereController::show('tasks', $u); return; } Perm::gate($ws, 'tasks.view', $u, 'tasks', 'Tasks'); self::page($u, $ws, Task::cleanFilters($_GET)); }
 
     /** Shows the page a form came from again, with the form (and its errors) reopened. */
     private static function rerender(array $u, array $ws, array $ctx, array $form): void {

@@ -17,6 +17,7 @@ if ($appInstalled) {
     $actions = '<a class="' . $btn . '" href="' . e($downloadUrl) . '">' . icon('download', 16) . ' Download &amp; Install App</a>' . $openForm($small, 'Already installed? Open the app');
 }
 include ROOT . '/app/Views/partials/page-heading.php';
+$scopeBase = '/dashboard'; $scopeNow = 'this'; include ROOT . '/app/Views/partials/scope-toggle.php';
 $note = 'mt-3.5 mb-0 text-tiny text-muted'; $link = 'text-tiny font-bold text-brand no-underline hover:underline';
 ?>
 <div class="flex flex-col gap-4.5 pb-6.5">
