@@ -1,13 +1,13 @@
 <?php
 /* All workspaces: my saved time. Vars: $logs (Everywhere::logs) $failed */
-$heading = 'Time Tracking'; $sub = 'Your saved work sessions from every workspace';
+$heading = 'Time Tracking'; $sub = 'Your saved sessions in your personal and linked workspaces';
 include ROOT . '/app/Views/partials/page-heading.php';
 include ROOT . '/app/Views/partials/scope-toggle.php';
 $rows = $logs['rows'] ?? []; $week = $logs['week'] ?? []; $names = $logs['names'] ?? [];
 ?>
 <div class="flex flex-col gap-4.5 pb-6.5">
 <?php if ($failed): ?>
-  <div class="panel-card flex flex-col items-center px-10 py-12 text-center" role="alert"><div class="mb-4 flex h-16 w-16 items-center justify-center rounded-icon bg-tag-amber/15 text-tag-amber"><?= icon('alert', 28) ?></div><h2 class="text-base">Connection interrupted</h2><p class="mt-1.5 mb-5 max-w-md text-xs leading-copy text-muted">We couldn't load your time logs. Please try again.</p><a class="btn btn-primary" href="<?= url('/time-tracking?scope=all') ?>">Try again</a></div>
+  <div class="panel-card flex flex-col items-center px-10 py-12 text-center" role="alert"><div class="mb-4 flex h-16 w-16 items-center justify-center rounded-icon bg-tag-amber/15 text-tag-amber"><?= icon('alert', 28) ?></div><h2 class="text-base">Connection interrupted</h2><p class="mt-1.5 mb-5 max-w-md text-xs leading-copy text-muted">We couldn't load your time logs. Please try again.</p><a class="btn btn-primary" href="<?= url('/time-tracking') ?>">Try again</a></div>
 <?php else: ?>
   <?php if ($week): ?>
   <div class="grid grid-cols-4 gap-3.5 max-laptop:grid-cols-2 max-sm:grid-cols-1">

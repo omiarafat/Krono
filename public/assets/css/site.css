@@ -562,6 +562,9 @@
   .max-w-75 {
     max-width: calc(var(--spacing) * 75);
   }
+  .max-w-44 {
+    max-width: calc(var(--spacing) * 44);
+  }
   .max-w-80 {
     max-width: calc(var(--spacing) * 80);
   }
@@ -1151,6 +1154,9 @@
   .pt-3 {
     padding-top: calc(var(--spacing) * 3);
   }
+  .pt-1\.5 {
+    padding-top: calc(var(--spacing) * 1.5);
+  }
   .pt-3\.5 {
     padding-top: calc(var(--spacing) * 3.5);
   }
@@ -1195,6 +1201,9 @@
   }
   .pl-5 {
     padding-left: calc(var(--spacing) * 5);
+  }
+  .text-left {
+    text-align: left;
   }
   .text-center {
     text-align: center;
@@ -2267,6 +2276,51 @@
     border-radius: var(--radius-tile);
     background-color: var(--soft);
     color: var(--brand);
+  }
+  .ws-switch {
+    display: flex;
+    height: calc(var(--spacing) * 8.5);
+    max-width: calc(var(--spacing) * 64);
+    cursor: pointer;
+    list-style-type: none;
+    align-items: center;
+    gap: calc(var(--spacing) * 2);
+    border-radius: var(--radius-xl);
+    border-style: var(--tw-border-style);
+    border-width: 1px;
+    border-color: var(--border);
+    background-color: var(--surface);
+    padding-inline: calc(var(--spacing) * 3);
+    font-size: var(--text-tiny);
+    --tw-font-weight: var(--font-weight-semibold);
+    font-weight: var(--font-weight-semibold);
+    color: var(--text);
+    transition-property: color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to;
+    transition-timing-function: var(--tw-ease, var(--default-transition-timing-function));
+    transition-duration: var(--tw-duration, var(--default-transition-duration));
+    &:hover {
+      @media (hover: hover) {
+        border-color: var(--brand);
+      }
+    }
+    &:hover {
+      @media (hover: hover) {
+        color: var(--brand);
+      }
+    }
+    &:focus-visible {
+      outline-style: var(--tw-outline-style);
+      outline-width: 2px;
+    }
+    &:focus-visible {
+      outline-offset: 2px;
+    }
+    &:focus-visible {
+      outline-color: var(--brand);
+    }
+    &::-webkit-details-marker {
+      display: none;
+    }
   }
   .choice-card {
     display: flex;

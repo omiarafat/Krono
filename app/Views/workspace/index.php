@@ -18,3 +18,18 @@ $n = count($list);
   </div>
   <div class="mt-5 flex items-center justify-between gap-3 border-t border-line pt-4 max-sm:flex-col max-sm:items-start"><div><strong class="block text-xs">Workspace context</strong><span class="text-micro text-muted">Projects, teams, permissions and reports are separate in each workspace.</span></div><span class="pill">No account switch required</span></div>
 </section>
+<?php if (!empty($links)): ?>
+<section class="panel-card mb-6 p-5.5 max-sm:p-4" aria-labelledby="ws-links">
+  <h2 class="m-0 text-base" id="ws-links">Show other workspaces in Personal</h2>
+  <p class="mt-1 mb-4 text-xs text-muted">Choose workspaces whose work you want to see together with your personal workspace. Only your own tasks, projects and time are shown, and you can remove a workspace at any time.</p>
+  <div class="flex flex-col">
+    <?php foreach ($links as $w): ?>
+      <form method="post" action="<?= url('/workspaces/link') ?>" class="flex items-center gap-3 border-b border-line py-3 last:border-b-0"><?= csrf_field() ?><input type="hidden" name="workspace_id" value="<?= (int)$w['id'] ?>"><input type="hidden" name="do" value="<?= $w['linked'] ? 'remove' : 'add' ?>">
+        <span class="ws-card-icon"><?= icon($w['type'] === 'company' ? 'team' : 'user', 20) ?></span>
+        <span class="min-w-0 flex-1"><strong class="block truncate text-xs"><?= e($w['name']) ?></strong><span class="block text-micro text-muted"><?= $w['type'] === 'company' ? 'Company' : 'Personal' ?> · <?= e(ucfirst($w['role'])) ?></span></span>
+        <?php if ($w['linked']): ?><span class="pill">Added</span><button class="btn" type="submit">Remove</button><?php else: ?><button class="btn btn-primary" type="submit">Add to Personal</button><?php endif; ?>
+      </form>
+    <?php endforeach; ?>
+  </div>
+</section>
+<?php endif; ?>

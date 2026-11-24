@@ -66,6 +66,20 @@ $tip = 'pointer-events-none absolute left-full top-1/2 z-50 ml-3 hidden -transla
           <div class="truncate text-xs text-muted">Workspace <span class="mx-2 text-side-muted">›</span> <?php if (!empty($crumb2)): ?><a href="<?= url($crumburl ?? '/projects') ?>" class="text-muted no-underline hover:text-brand"><?= e($crumb) ?></a> <span class="mx-2 text-side-muted">›</span> <?php if (!empty($crumb3)): ?><a href="<?= e($crumb2url) ?>" class="text-muted no-underline hover:text-brand"><?= e($crumb2) ?></a> <span class="mx-2 text-side-muted">›</span> <strong class="font-bold text-ink"><?= e($crumb3) ?></strong><?php else: ?><strong class="font-bold text-ink"><?= e($crumb2) ?></strong><?php endif; ?><?php else: ?><strong class="font-bold text-ink"><?= e($crumb) ?></strong><?php endif; ?></div>
         </div>
         <div class="flex items-center gap-3">
+          <?php $wsList = []; try { $wsList = Workspace::mine((int)($user['id'] ?? 0)); } catch (Throwable $e) { error_log((string)$e); } $wsNow = Workspace::current(); $wsMany = count($wsList) > 1; ?>
+          <?php if ($wsMany && $wsNow): ?>
+          <details class="relative max-sm:hidden" data-account-menu>
+            <summary class="ws-switch" aria-label="Switch workspace"><?= icon('switch', 15) ?><span class="max-w-44 truncate"><?= e((string)$wsNow['name']) ?></span><?= icon('chevron-down', 14) ?></summary>
+            <div class="absolute right-0 top-full mt-2 z-50 min-w-64 max-w-80 rounded-xl border border-line bg-surface p-1.5 shadow-card">
+              <div class="px-2.5 pt-1.5 pb-1 text-micro font-bold tracking-label text-muted">SWITCH WORKSPACE</div>
+              <?php foreach ($wsList as $w): $on = (int)$w['id'] === (int)$wsNow['id']; ?>
+                <form method="post" action="<?= url('/workspaces/switch') ?>" class="m-0"><?= csrf_field() ?><input type="hidden" name="workspace_id" value="<?= (int)$w['id'] ?>">
+                  <button type="submit" class="menu-item"<?= $on ? ' aria-current="true"' : '' ?>><?= icon($w['type'] === 'company' ? 'team' : 'user', 16) ?><span class="min-w-0 flex-1 text-left"><span class="block truncate"><?= e($w['name']) ?></span><span class="block text-micro font-normal text-muted"><?= $w['type'] === 'company' ? 'Company' : 'Personal' ?> · <?= e(ucfirst($w['role'])) ?></span></span><?= $on ? icon('check', 15) : '' ?></button></form>
+              <?php endforeach; ?>
+              <a class="menu-item mt-1 border-t border-line no-underline" href="<?= url('/workspaces') ?>"><?= icon('plus', 16) ?>Manage workspaces</a>
+            </div>
+          </details>
+          <?php endif; ?>
           <button class="icon-button size-8.5" type="button" aria-label="Search" title="Search (coming soon)"><?= icon('search', 16) ?></button>
           <button class="icon-button size-8.5" type="button" aria-label="Notifications" title="Notifications (coming soon)"><?= icon('bell', 16) ?></button>
           <span class="mx-0.75 h-6 w-px bg-line"></span>
@@ -75,7 +89,7 @@ $tip = 'pointer-events-none absolute left-full top-1/2 z-50 ml-3 hidden -transla
               <span class="flex flex-col gap-0.5 text-tiny max-sm:hidden"><strong><?= e($uname) ?></strong><span class="max-w-40 truncate text-micro text-muted"><?= e((string)(Workspace::current()['name'] ?? 'Workspace')) ?></span></span>
             </summary>
             <div class="absolute right-0 top-full mt-2 z-50 min-w-50 rounded-xl border border-line bg-surface p-1.5 shadow-card">
-              <a class="menu-item no-underline" href="<?= url('/workspaces') ?>"><?= icon('switch', 16) ?>Switch workspace</a>
+              <?php if ($wsMany): ?><a class="menu-item no-underline" href="<?= url('/workspaces') ?>"><?= icon('switch', 16) ?>Switch workspace</a><?php endif; ?>
               <a class="menu-item no-underline" href="<?= url('/workspaces/new') ?>"><?= icon('plus', 16) ?>Create or upgrade</a>
               <form method="post" action="<?= url('/open-app') ?>"><?= csrf_field() ?><button class="menu-item" type="submit"><?= icon('desktop', 16) ?>Open Krono Desktop</button></form>
               <form method="post" action="<?= url('/logout') ?>"><?= csrf_field() ?><button class="menu-item" type="submit"><?= icon('logout', 16) ?>Log out</button></form>

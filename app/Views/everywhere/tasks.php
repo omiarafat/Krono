@@ -1,13 +1,13 @@
 <?php
 /* All workspaces: my open tasks grouped by workspace. Vars: $groups (Everywhere::tasks) $failed */
-$heading = 'Tasks'; $sub = 'The tasks assigned to you in every workspace';
+$heading = 'Tasks'; $sub = 'Your tasks in your personal and linked workspaces';
 include ROOT . '/app/Views/partials/page-heading.php';
 include ROOT . '/app/Views/partials/scope-toggle.php';
 $total = array_sum(array_map(fn($g) => count($g['tasks']), $groups ?? []));
 ?>
 <div class="flex flex-col gap-4.5 pb-6.5">
 <?php if ($failed): ?>
-  <div class="panel-card flex flex-col items-center px-10 py-12 text-center" role="alert"><div class="mb-4 flex h-16 w-16 items-center justify-center rounded-icon bg-tag-amber/15 text-tag-amber"><?= icon('alert', 28) ?></div><h2 class="text-base">Connection interrupted</h2><p class="mt-1.5 mb-5 max-w-md text-xs leading-copy text-muted">We couldn't load your tasks. Please try again.</p><a class="btn btn-primary" href="<?= url('/tasks?scope=all') ?>">Try again</a></div>
+  <div class="panel-card flex flex-col items-center px-10 py-12 text-center" role="alert"><div class="mb-4 flex h-16 w-16 items-center justify-center rounded-icon bg-tag-amber/15 text-tag-amber"><?= icon('alert', 28) ?></div><h2 class="text-base">Connection interrupted</h2><p class="mt-1.5 mb-5 max-w-md text-xs leading-copy text-muted">We couldn't load your tasks. Please try again.</p><a class="btn btn-primary" href="<?= url('/tasks') ?>">Try again</a></div>
 <?php elseif (!$groups || $total === 0): ?>
   <div class="panel-card px-6 py-10 text-center"><h2 class="text-base">No open tasks assigned to you</h2><p class="mt-1.5 mb-0 text-xs text-muted">Tasks assigned to you in any workspace will show up here.</p></div>
 <?php else: foreach ($groups as $g): $w = $g['ws']; if (!$g['tasks']) continue; ?>

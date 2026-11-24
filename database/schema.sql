@@ -383,3 +383,16 @@ CREATE TABLE IF NOT EXISTS team_members (
   CONSTRAINT fk_tm_team FOREIGN KEY (team_id) REFERENCES teams(id) ON DELETE CASCADE,
   CONSTRAINT fk_tm_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Personal workspace "combined view": which other workspaces' work (own tasks, projects, time) shows next to the personal one.
+CREATE TABLE IF NOT EXISTS workspace_links (
+  personal_workspace_id BIGINT UNSIGNED NOT NULL,
+  linked_workspace_id BIGINT UNSIGNED NOT NULL,
+  user_id BIGINT UNSIGNED NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (personal_workspace_id, linked_workspace_id),
+  KEY idx_wl_user (user_id),
+  CONSTRAINT fk_wl_personal FOREIGN KEY (personal_workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE,
+  CONSTRAINT fk_wl_linked FOREIGN KEY (linked_workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE,
+  CONSTRAINT fk_wl_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

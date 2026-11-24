@@ -5,7 +5,7 @@ final class WorkspaceController {
 
     static function index(): void {
         $u = self::user(); $cur = Workspace::current();
-        render('workspace/index', ['title' => 'Choose a workspace', 'user' => $u, 'nav' => 'workspaces', 'crumb' => 'Choose a workspace', 'list' => Workspace::mine((int)$u['id']), 'currentId' => (int)($cur['id'] ?? 0)], 'app');
+        render('workspace/index', ['title' => 'Choose a workspace', 'user' => $u, 'nav' => 'workspaces', 'crumb' => 'Choose a workspace', 'list' => Workspace::mine((int)$u['id']), 'links' => Everywhere::candidates((int)$u['id']), 'currentId' => (int)($cur['id'] ?? 0)], 'app');
     }
 
     /** Only a workspace the person is an active member of can become current. */
@@ -14,6 +14,13 @@ final class WorkspaceController {
         if ($id <= 0 || !Workspace::setCurrent((int)$u['id'], $id)) { flash('error', 'You are not a member of that workspace.'); redirect('/workspaces'); }
         $next = (string)($_POST['next'] ?? '');   // only our own pages
         redirect(preg_match('#^/(dashboard|tasks|time-tracking|projects)$|^/(task|project)\?id=\d+$#', $next) ? $next : '/dashboard');
+    }
+
+    /** Personal workspace only: show (or stop showing) another workspace's own work next to the personal one. */
+    static function link(): void {
+        $u = self::user(); $on = ($_POST['do'] ?? '') === 'add'; $err = Everywhere::setLink((int)$u['id'], (int)($_POST['workspace_id'] ?? 0), $on);
+        if ($err !== '') flash('error', $err); else flash('ok', $on ? 'Workspace added to your personal view.' : 'Workspace removed from your personal view.');
+        redirect('/workspaces');
     }
 
     private static function eligible(int $uid): array {   // personal workspaces the person owns

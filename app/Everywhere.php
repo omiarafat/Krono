@@ -1,18 +1,44 @@
 <?php
 /**
- * "All workspaces" view: the signed-in person's OWN work across every workspace they are an active member of.
+ * Personal workspace combined view: the signed-in person's OWN work in their personal workspace plus the workspaces they chose to link to it.
  * Only their own tasks, projects and saved time are read, and only from workspaces where their role may open that page.
  * Nothing about other people is included. Leaving or being deactivated in a workspace removes it from these lists.
  */
 final class Everywhere {
     const ACTIVE = "'planning','in_progress'";
 
-    /** Active memberships as workspace arrays (the shape Perm::can() expects). Personal workspaces first, then by name. */
-    static function spaces(int $uid): array {
-        try { return Db::q("SELECT w.id, w.name, w.type, w.timezone, m.role, m.custom_role_id FROM workspace_members m JOIN workspaces w ON w.id = m.workspace_id WHERE m.user_id = ? AND m.status = 'active' ORDER BY (w.type = 'personal') DESC, w.name, w.id", [$uid])->fetchAll(); }
-        catch (Throwable $e) { return Db::q("SELECT w.id, w.name, w.type, w.timezone, m.role FROM workspace_members m JOIN workspaces w ON w.id = m.workspace_id WHERE m.user_id = ? AND m.status = 'active' ORDER BY w.name, w.id", [$uid])->fetchAll(); }
+    /** Workspaces linked to a personal workspace that the person is STILL an active member of. @return int[] */
+    static function linkedIds(int $personalId, int $uid): array {
+        try { return array_map('intval', Db::q("SELECT l.linked_workspace_id FROM workspace_links l JOIN workspace_members m ON m.workspace_id = l.linked_workspace_id AND m.user_id = ? AND m.status = 'active'
+            WHERE l.personal_workspace_id = ? AND l.user_id = ?", [$uid, $personalId, $uid])->fetchAll(PDO::FETCH_COLUMN)); }
+        catch (Throwable $e) { return []; }
     }
-    static function count(int $uid): int { try { return count(Workspace::mine($uid)); } catch (Throwable $e) { return 1; } }
+    /** The personal workspace the person is in right now, or null (company workspaces never combine). */
+    private static function personal(int $uid): ?array { $w = Workspace::current(); return $w && ($w['type'] ?? '') === 'personal' && ($w['role'] ?? '') === 'owner' ? $w : null; }
+    /** True when the current workspace is a personal one that has linked workspaces. */
+    static function active(int $uid): bool { $p = self::personal($uid); return $p && self::linkedIds((int)$p['id'], $uid) !== []; }
+    /** Combined view on: personal + linked workspaces (the current personal one first). Otherwise just the current workspace. */
+    static function spaces(int $uid): array {
+        $p = self::personal($uid); if (!$p) return [];
+        $ids = array_merge([(int)$p['id']], self::linkedIds((int)$p['id'], $uid)); $in = '(' . implode(',', array_fill(0, count($ids), '?')) . ')';
+        try { return Db::q("SELECT w.id, w.name, w.type, w.timezone, m.role, m.custom_role_id FROM workspace_members m JOIN workspaces w ON w.id = m.workspace_id WHERE m.user_id = ? AND m.status = 'active' AND w.id IN $in ORDER BY (w.id = ?) DESC, w.name, w.id", array_merge([$uid], $ids, [(int)$p['id']]))->fetchAll(); }
+        catch (Throwable $e) { return Db::q("SELECT w.id, w.name, w.type, w.timezone, m.role FROM workspace_members m JOIN workspaces w ON w.id = m.workspace_id WHERE m.user_id = ? AND m.status = 'active' AND w.id IN $in ORDER BY (w.id = ?) DESC, w.name", array_merge([$uid], $ids, [(int)$p['id']]))->fetchAll(); }
+    }
+    /** Other workspaces that can be linked (everything the person belongs to except the personal one) with whether each is linked now. */
+    static function candidates(int $uid): array {
+        $p = self::personal($uid); if (!$p) return [];
+        $on = self::linkedIds((int)$p['id'], $uid);
+        return array_map(fn($w) => $w + ['linked' => in_array((int)$w['id'], $on, true)], array_values(array_filter(Workspace::mine($uid), fn($w) => (int)$w['id'] !== (int)$p['id'])));
+    }
+    /** Add or remove a link. @return string '' on success, else a message */
+    static function setLink(int $uid, int $wid, bool $on): string {
+        $p = self::personal($uid); if (!$p) return 'Open your personal workspace first.';
+        if ($wid === (int)$p['id']) return 'That is your personal workspace.';
+        if (!Db::q("SELECT 1 FROM workspace_members WHERE workspace_id = ? AND user_id = ? AND status = 'active'", [$wid, $uid])->fetchColumn()) return 'You are not a member of that workspace.';
+        if ($on) Db::q('INSERT IGNORE INTO workspace_links (personal_workspace_id, linked_workspace_id, user_id) VALUES (?,?,?)', [(int)$p['id'], $wid, $uid]);
+        else Db::q('DELETE FROM workspace_links WHERE personal_workspace_id = ? AND linked_workspace_id = ? AND user_id = ?', [(int)$p['id'], $wid, $uid]);
+        return '';
+    }
     private static function utc(DateTimeImmutable $d): string { return $d->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d H:i:s'); }
     private static function allowed(array $spaces, string $key): array { return array_values(array_filter($spaces, fn($w) => Perm::can($w, $key))); }
 

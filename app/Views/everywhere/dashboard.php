@@ -1,15 +1,15 @@
 <?php
 /* All workspaces: my own numbers per workspace. Vars: $rows (Everywhere::summary) $failed $scopeBase $scopeNow */
-$heading = 'Dashboard'; $sub = 'Your own work across all your workspaces';
+$heading = 'Dashboard'; $sub = 'Your own work in your personal and linked workspaces';
 include ROOT . '/app/Views/partials/page-heading.php';
 include ROOT . '/app/Views/partials/scope-toggle.php';
 $sum = fn(string $k) => array_sum(array_map(fn($r) => (int)($r[$k] ?? 0), $rows ?? []));
 $note = 'm-0 text-tiny text-muted'; $dash = '—';
-$cards = [['projects', 'Active projects', sprintf('%02d', $sum('projects')), 'In all workspaces'], ['tasks', 'Open tasks', sprintf('%02d', $sum('open')), $sum('overdue') . ' overdue'], ['time', 'Saved time', fmt_hm($sum('month')), 'This month, all workspaces'], ['team', 'Workspaces', sprintf('%02d', count($rows ?? [])), 'You belong to']];
+$cards = [['projects', 'Active projects', sprintf('%02d', $sum('projects')), 'Personal + linked'], ['tasks', 'Open tasks', sprintf('%02d', $sum('open')), $sum('overdue') . ' overdue'], ['time', 'Saved time', fmt_hm($sum('month')), 'This month'], ['team', 'Workspaces', sprintf('%02d', count($rows ?? [])), 'Personal + linked']];
 ?>
 <div class="flex flex-col gap-4.5 pb-6.5">
 <?php if ($failed): ?>
-  <div class="panel-card flex flex-col items-center px-10 py-12 text-center" role="alert"><div class="mb-4 flex h-16 w-16 items-center justify-center rounded-icon bg-tag-amber/15 text-tag-amber"><?= icon('alert', 28) ?></div><h2 class="text-base">Connection interrupted</h2><p class="mt-1.5 mb-5 max-w-md text-xs leading-copy text-muted">We couldn't load your workspaces. Please try again.</p><a class="btn btn-primary" href="<?= url('/dashboard?scope=all') ?>">Try again</a></div>
+  <div class="panel-card flex flex-col items-center px-10 py-12 text-center" role="alert"><div class="mb-4 flex h-16 w-16 items-center justify-center rounded-icon bg-tag-amber/15 text-tag-amber"><?= icon('alert', 28) ?></div><h2 class="text-base">Connection interrupted</h2><p class="mt-1.5 mb-5 max-w-md text-xs leading-copy text-muted">We couldn't load your workspaces. Please try again.</p><a class="btn btn-primary" href="<?= url('/dashboard') ?>">Try again</a></div>
 <?php else: ?>
   <div class="grid grid-cols-4 gap-3.5 max-laptop:grid-cols-2 max-sm:grid-cols-1">
     <?php foreach ($cards as [$ic, $label, $value, $meta]): ?>

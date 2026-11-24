@@ -13,6 +13,7 @@ return [
   'search' => '<circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 4.5 4.5"/>',
   'chevron-left' => '<path d="M15 6l-6 6 6 6"/>',   // open / close arrow of the sidebar and the Settings menu (turns around when closed)
   'bell' => '<path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/>',
+  'chevron-down' => '<path d="m6 9 6 6 6-6"/>',
   'check' => '<path d="m5 12 4.5 4.5L19 7"/>',
   'shield' => '<path d="M12 3 20 6v5c0 5-3.4 8.2-8 10-4.6-1.8-8-5-8-10V6z"/>',
   'user' => '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
