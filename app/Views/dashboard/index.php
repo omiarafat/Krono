@@ -20,6 +20,7 @@ include ROOT . '/app/Views/partials/page-heading.php';
 $note = 'mt-3.5 mb-0 text-tiny text-muted'; $link = 'text-tiny font-bold text-brand no-underline hover:underline';
 ?>
 <div class="flex flex-col gap-4.5 pb-6.5">
+  <?php if (!empty($team)) include ROOT . '/app/Views/dashboard/_team.php'; ?>
   <div class="grid grid-cols-4 gap-3.5 max-laptop:grid-cols-2 max-sm:grid-cols-1">
     <?php foreach ($stats as [$ic, $label, $value, $meta]): ?>
       <div class="panel-card flex min-h-27 items-center gap-3 px-4.25 py-4.5">
