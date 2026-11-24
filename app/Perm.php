@@ -101,8 +101,11 @@ final class Perm {
     /** The signed-in membership as given by Workspace::forUser(): ['role', 'custom_role_id', ...] */
     static function set(array $ws): array {
         if (!empty($ws['custom_role_id']) && $ws['role'] !== 'owner') { $c = self::custom((int)$ws['id'], (int)$ws['custom_role_id']); if ($c) return $c['permissions']; }
-        return self::preset((string)($ws['role'] ?? ''));
+        $set = self::preset((string)($ws['role'] ?? ''));
+        // A personal workspace has one person only: no team, invitations, roles or audit log (upgrade to a company for those).
+        return ($ws['type'] ?? '') === 'personal' ? array_values(array_diff($set, self::PERSONAL_OFF)) : $set;
     }
+    const PERSONAL_OFF = ['team.view', 'team.invite', 'team.roles', 'team.deactivate', 'team.groups', 'team.approve', 'workspace.audit', 'workspace.roles'];
     static function can(array $ws, string $key): bool { return in_array($key, self::set($ws), true); }
     static function scope(array $ws): string {
         if (!empty($ws['custom_role_id']) && $ws['role'] !== 'owner') { $c = self::custom((int)$ws['id'], (int)$ws['custom_role_id']); if ($c) return $c['scope']; }

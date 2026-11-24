@@ -3,7 +3,7 @@
  * Krono demo data (LOCAL ONLY, APP_ENV=local). Fills the whole site with sample content so every page can be checked.
  *
  *   php database/seed.php                       add the demo data (running it again replaces the old demo data, never duplicates)
- *   php database/seed.php --join=you@mail.com   same, and also adds YOUR existing account to the demo workspace as Admin
+ *   php database/seed.php --join=you@mail.com   same, and also gives YOUR existing account (e-mail or user id) several demo companies: Admin, Owner and Member roles
  *   php database/seed.php --remove              remove ONLY the demo data (your own accounts and workspaces are never touched)
  *   php database/seed.php --fresh --yes         DROP every table, rebuild them (schema.sql + migrate) and add the demo data
  *
@@ -19,7 +19,7 @@ const DEMO_PASSWORD = 'Demo@12345';
 const DAYS_BACK = 13;
 
 $opt = fn(string $n) => in_array($n, $argv, true);
-$join = ''; foreach ($argv as $a) if (str_starts_with($a, '--join=')) $join = strtolower(trim(substr($a, 7)));
+$join = ''; foreach ($argv as $a) if (str_starts_with($a, '--join=')) $join = strtolower(trim(substr($a, 7)));   // an e-mail or a numeric user id
 $f = 'Y-m-d H:i:s';
 
 /** Insert one row from an array; returns the new id. */
@@ -33,7 +33,7 @@ function col(string $sql): array { return array_map('intval', Db::q($sql)->fetch
 /** Removes the demo data in an order that respects the foreign keys. Returns the number of demo people removed. */
 function remove_demo(): int {
     $u = col("SELECT id FROM users WHERE email LIKE '%" . DEMO_DOMAIN . "'");
-    $w = $u ? col('SELECT id FROM workspaces WHERE created_by IN (' . in_list($u) . ')') : [];
+    $w = col("SELECT id FROM workspaces WHERE name LIKE 'Demo · %'" . ($u ? ' OR created_by IN (' . in_list($u) . ')' : ''));
     $U = in_list($u); $W = in_list($w);
     if ($w) {
         $p = col("SELECT id FROM projects WHERE workspace_id IN ($W)"); $P = in_list($p);
@@ -135,12 +135,12 @@ try {
     }
     $offOf = fn(string $k) => explode(',', $people[$k][3] ?? 'fri');   // days off of a person (workspace default: Friday)
 
-    // optional: add the person running this script, so they can look around with their own login
+    // optional: add the person running this script (e-mail or user id), so they can look around with their own login
+    $me = 0;
     if ($join !== '') {
-        $me = Db::q('SELECT id FROM users WHERE email = ?', [$join])->fetchColumn();
-        if (!$me) throw new RuntimeException("No account with the e-mail $join. Register it first, then run the command again.");
-        ins('workspace_members', ['workspace_id' => $ws, 'user_id' => (int)$me, 'role' => 'admin', 'status' => 'active', 'created_at' => $at($ago(1))]);
-        Db::q('UPDATE users SET current_workspace_id = ? WHERE id = ?', [$ws, (int)$me]);
+        $me = (int)(ctype_digit($join) ? Db::q('SELECT id FROM users WHERE id = ?', [(int)$join])->fetchColumn() : Db::q('SELECT id FROM users WHERE email = ?', [$join])->fetchColumn());
+        if (!$me) throw new RuntimeException("No account with the e-mail or id $join. Register it first, then run the command again.");
+        ins('workspace_members', ['workspace_id' => $ws, 'user_id' => $me, 'role' => 'admin', 'manager_id' => $owner, 'status' => 'active', 'created_at' => $at($ago(1))]);
     }
 
     // ----- teams (groups) and Team Leaders
@@ -239,6 +239,52 @@ try {
             'status' => $status, 'invited_by' => $uid['admin'], 'expires_at' => $at($today->modify("+$daysLeft days")->setTime(12, 0)), 'created_at' => $at($ago(2))]);
     }
 
+    // ----- extra demo companies for the joined account: Owner of two, Member of two (so Switch workspace, roles and reports can be checked per workspace)
+    $extraCompanies = 0; $myLogs = 0;
+    if ($me) {
+        $myName = (string)Db::q('SELECT name FROM users WHERE id = ?', [$me])->fetchColumn();
+        $co = [   // workspace name, company name, industry, my role, who owns it ('me' or a demo key), people (key => role), projects [name, status, [[task, status, priority, assigned to ('me' or key), due offset]]]
+            ['Demo · Brightwave Agency', 'Brightwave Agency', 'agency', 'owner', 'me', ['mgr1' => 'manager', 'm1' => 'member', 'm3' => 'member', 'm4' => 'member'], [
+                ['Brand Refresh', 'in_progress', [['Moodboard and direction', 'completed', 'high', 'me', -6], ['Logo concepts', 'in_progress', 'high', 'm1', 2], ['Client review deck', 'todo', 'medium', 'me', 4], ['Colour palette', 'review', 'normal', 'm3', 1]]],
+                ['Social Campaign', 'planning', [['Content calendar', 'todo', 'normal', 'm4', 8], ['Approve ad copy', 'in_progress', 'medium', 'me', -1]]]]],
+            ['Demo · Harbor Consulting', 'Harbor Consulting', 'consulting', 'owner', 'me', ['mgr2' => 'manager', 'm5' => 'member', 'm6' => 'member'], [
+                ['Process Audit', 'in_progress', [['Interview schedule', 'completed', 'normal', 'm5', -9], ['Findings report', 'in_progress', 'high', 'me', 3], ['Workshop agenda', 'todo', 'low', 'm6', 6]]]]],
+            ['Demo · Greenleaf Foods', 'Greenleaf Foods', 'retail', 'member', 'owner', ['mgr1' => 'manager', 'm7' => 'member', 'm8' => 'member'], [
+                ['Online Store', 'in_progress', [['Product photos', 'in_progress', 'medium', 'me', 2], ['Checkout testing', 'todo', 'high', 'me', -2], ['Stock import', 'review', 'normal', 'm7', 3], ['Delivery zones', 'completed', 'low', 'm8', -7]]]]],
+            ['Demo · Orbit Labs', 'Orbit Labs', 'software', 'member', 'admin', ['mgr2' => 'manager', 'm2' => 'member', 'm5' => 'member'], [
+                ['API v2', 'in_progress', [['Write endpoint docs', 'in_progress', 'medium', 'me', 5], ['Rate limiting', 'todo', 'high', 'm2', 7], ['Fix pagination bug', 'completed', 'high', 'me', -4]]]]],
+        ];
+        foreach ($co as [$wname, $cname, $industry, $myRole, $ownerKey, $others, $projs]) {
+            $ownerId = $ownerKey === 'me' ? $me : $uid[$ownerKey]; $lead = $ownerKey === 'me' ? 'owner' : $ownerKey;
+            $w2 = ins('workspaces', ['name' => $wname, 'timezone' => 'Asia/Dhaka', 'type' => 'company', 'country' => 'BD', 'company_name' => $cname, 'industry' => $industry, 'created_by' => $ownerId, 'created_at' => $at($ago(50))]);
+            if ($ownerKey !== 'me') ins('workspace_members', ['workspace_id' => $w2, 'user_id' => $ownerId, 'role' => $ownerKey === 'admin' ? 'admin' : 'owner', 'status' => 'active', 'created_at' => $at($ago(50))]);
+            ins('workspace_members', ['workspace_id' => $w2, 'user_id' => $me, 'role' => $myRole, 'manager_id' => $myRole === 'owner' ? null : $ownerId, 'status' => 'active', 'created_at' => $at($ago(45))]);
+            foreach ($others as $k => $r) ins('workspace_members', ['workspace_id' => $w2, 'user_id' => $uid[$k], 'role' => $r, 'manager_id' => $ownerId, 'status' => 'active', 'created_at' => $at($ago(44))]);
+            ins('audit_log', ['workspace_id' => $w2, 'actor_id' => $ownerId, 'target_user_id' => null, 'action' => 'workspace_created', 'detail' => 'Company workspace: ' . $wname, 'created_at' => $at($ago(50, 11))]);
+            $extraCompanies++; $mine = [];
+            foreach ($projs as [$pname, $pstatus, $tasks]) {
+                $pid = ins('projects', ['workspace_id' => $w2, 'name' => $pname, 'description' => '[demo] ' . $pname . ' sample project', 'status' => $pstatus, 'priority' => 'medium', 'start_date' => $today->modify('-30 days')->format('Y-m-d'),
+                    'due_date' => $today->modify('+40 days')->format('Y-m-d'), 'leader_id' => $ownerId, 'created_by' => $ownerId, 'created_at' => $at($ago(30))]);
+                ins('project_members', ['project_id' => $pid, 'user_id' => $me, 'added_at' => $at($ago(30))]);
+                foreach ($others as $k => $r) ins('project_members', ['project_id' => $pid, 'user_id' => $uid[$k], 'added_at' => $at($ago(30))]);
+                foreach ($tasks as $i => [$title, $st, $tp, $who, $dueOff]) {
+                    $assignee = $who === 'me' ? $me : $uid[$who];
+                    $tid = ins('tasks', ['project_id' => $pid, 'title' => $title, 'description' => 'Sample task for checking the design: ' . strtolower($title) . '.', 'status' => $st, 'priority' => $tp, 'assignee_id' => $assignee,
+                        'due_date' => $today->modify(($dueOff >= 0 ? '+' : '') . $dueOff . ' days')->format('Y-m-d'), 'estimate_minutes' => 120, 'created_by' => $ownerId, 'created_at' => $at($ago(20 - $i)),
+                        'completed_at' => $st === 'completed' ? $at($today->modify(($dueOff - 1) . ' days')->setTime(16, 0)) : null]);
+                    if ($who === 'me' && $st !== 'todo') $mine[] = [$tid, $pid];
+                }
+            }
+            // my saved time in this company: a few weekday sessions in the last 10 days
+            for ($back = 10; $back >= 1; $back--) {
+                $day = $today->modify("-$back days"); if (in_array((int)$day->format('N'), [5, 6], true) || !$mine || mt_rand(1, 100) > 60) continue;
+                [$tid, $pid] = $mine[array_rand($mine)]; $mins = mt_rand(4, 16) * 15; $start = $day->setTime(10, 0)->modify('+' . mt_rand(0, 90) . ' minutes');
+                ins('task_time_logs', ['user_id' => $me, 'project_id' => $pid, 'task_id' => $tid, 'started_at' => $at($start), 'ended_at' => $at($start->modify("+$mins minutes")), 'duration_seconds' => $mins * 60, 'work_description' => $descs[array_rand($descs)]]);
+                $myLogs++;
+            }
+        }
+    }
+
     // ----- audit log
     $audit = [['workspace_created', $owner, null, 'Company workspace: Demo · Northstar Studio', 60], ['invite_sent', $uid['admin'], null, 'invitee1' . DEMO_DOMAIN . ' as member', 2], ['team_created', $owner, null, 'Design', 40], ['team_created', $owner, null, 'Development', 40],
         ['team_leader_set', $owner, $uid['mgr1'], 'Design', 40], ['team_leader_set', $owner, $uid['mgr2'], 'Development', 40], ['role_changed', $uid['admin'], $uid['m2'], 'Member → Team Coordinator', 30],
@@ -258,5 +304,5 @@ echo "  Personal workspace : Demo · Amina's Workspace\n";
 echo "  Projects 5, tasks " . count($taskRows) . ", attendance sessions $sessions, time logs $logs, teams 3, requests 5, invitations 4\n";
 echo "  Log in with one of these (password for all: " . DEMO_PASSWORD . "):\n";
 foreach (['owner' => 'Owner', 'admin' => 'Admin', 'mgr1' => 'Manager', 'm1' => 'Member', 'viewer' => 'Viewer'] as $k => $r) echo '    ' . str_pad($k . DEMO_DOMAIN, 30) . $r . "\n";
-if ($join !== '') echo "  Your account $join was added to the company workspace as Admin; open Switch workspace to see it.\n";
+if ($join !== '') echo "  Your account $join now belongs to: Northstar Studio (Admin), Brightwave Agency (Owner), Harbor Consulting (Owner), Greenleaf Foods (Member), Orbit Labs (Member) + $myLogs of your own time logs. Use the workspace switcher in the header.\n";
 echo "Remove it again:  php database/seed.php --remove\n";

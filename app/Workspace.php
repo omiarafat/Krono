@@ -12,7 +12,7 @@ final class Workspace {
 
     /** The user's current workspace (the one they last joined, else their first active membership) as ['id','name','timezone','role'], or null. */
     static function forUser(int $uid): ?array {
-        $sel = 'SELECT w.id, w.name, w.timezone, m.role, m.custom_role_id FROM workspace_members m JOIN workspaces w ON w.id = m.workspace_id';
+        $sel = 'SELECT w.id, w.name, w.timezone, w.type, m.role, m.custom_role_id FROM workspace_members m JOIN workspaces w ON w.id = m.workspace_id';
         $old = 'SELECT w.id, w.name, w.timezone, m.role FROM workspace_members m JOIN workspaces w ON w.id = m.workspace_id';
         try {   // current_workspace_id exists after "php database/migrate.php"; until then fall back to the first membership
             $r = Db::q("$sel JOIN users u ON u.id = m.user_id WHERE m.user_id = ? AND m.status = 'active' ORDER BY (CASE WHEN w.id = u.current_workspace_id THEN 0 ELSE 1 END), m.created_at, w.id LIMIT 1", [$uid])->fetch();

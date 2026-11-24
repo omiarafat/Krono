@@ -95,7 +95,7 @@ final class Dashboard {
      * Cards and lists follow the same permissions as the pages they link to. Null when the scope is "own" (a plain member).
      */
     static function team(int $uid, array $ws, ?DateTimeImmutable $now = null): ?array {
-        if (Perm::scope($ws) === 'own') return null;
+        if (Perm::scope($ws) === 'own' || ($ws['type'] ?? '') === 'personal') return null;
         $tz = Workspace::tz($ws); $wid = (int)$ws['id'];
         $now = ($now ?? new DateTimeImmutable('now', new DateTimeZone('UTC')))->setTimezone($tz); $today = $now->setTime(0, 0); $ymd = $today->format('Y-m-d');
         $people = TimeLog::people($uid, $ws); $ids = array_map('intval', array_keys($people));
