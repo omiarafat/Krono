@@ -25,6 +25,9 @@ final class Perm {
             'time.view' => ['See time tracking', 'Open saved time logs for the people in their data scope.'],
             'attendance.view' => ['See attendance', 'Open attendance for the people in their data scope.'],
         ],
+        'Dashboard' => [
+            'dashboard.view_overview' => ['See the workspace overview', 'Open the Overview tab of the Dashboard for the people in their data scope.'],
+        ],
         'Reports' => [
             'reports.view' => ['See reports', 'Open reports for the people in their data scope.'],
             'reports.export' => ['Export reports as PDF', 'Download a report as a PDF file.'],
@@ -57,7 +60,7 @@ final class Perm {
     const BUILT_IN = [
         'owner' => ['Owner', 'Full workspace control', ['*']],
         'admin' => ['Admin', 'Manage workspace members and settings', ['*']],
-        'manager' => ['Manager', 'Manage assigned employees', ['projects.view', 'projects.edit', 'projects.archive', 'tasks.view', 'tasks.edit', 'tasks.assign', 'tasks.delete', 'time.view', 'attendance.view', 'reports.view', 'reports.export', 'team.view', 'team.approve']],
+        'manager' => ['Manager', 'Manage assigned employees', ['projects.view', 'projects.edit', 'projects.archive', 'tasks.view', 'tasks.edit', 'tasks.assign', 'tasks.delete', 'time.view', 'attendance.view', 'reports.view', 'reports.export', 'team.view', 'team.approve', 'dashboard.view_overview']],
         'member' => ['Member', 'Standard member access', ['projects.view', 'tasks.view', 'time.view', 'attendance.view', 'reports.view', 'reports.export']],
         'viewer' => ['Viewer', 'Read-only access', ['projects.view', 'tasks.view', 'time.view', 'attendance.view', 'reports.view']],
     ];

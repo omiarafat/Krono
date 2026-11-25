@@ -3,7 +3,7 @@
 $view = $mode === 'view'; $have = array_flip($role['permissions']); $total = count(Perm::keys());
 $errors ??= []; $err = fn(string $k) => isset($errors[$k]) ? '<p class="field-error">' . e($errors[$k]) . '</p>' : '';
 $bad = fn(string $k) => isset($errors[$k]) ? ' aria-invalid="true"' : '';
-$icons = ['Projects' => 'projects', 'Tasks' => 'tasks', 'Time & Attendance' => 'time', 'Reports' => 'reports', 'Teams' => 'team', 'Workspace' => 'settings'];
+$icons = ['Dashboard' => 'dashboard', 'Projects' => 'projects', 'Tasks' => 'tasks', 'Time & Attendance' => 'time', 'Reports' => 'reports', 'Teams' => 'team', 'Workspace' => 'settings'];
 $copyKey = $role['builtin'] !== '' ? $role['builtin'] : (string)$role['id'];
 $actions = $view
     ? '<a class="btn btn-primary" href="' . e(url('/settings/workspace/roles/edit?copy=' . $copyKey)) . '">Copy as new role</a>'

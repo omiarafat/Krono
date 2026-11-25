@@ -998,6 +998,12 @@
       background-color: color-mix(in oklab, var(--color-tag-amber) 15%, transparent);
     }
   }
+  .bg-tag-red\/15 {
+    background-color: color-mix(in srgb, #EF4444 15%, transparent);
+    @supports (color: color-mix(in lab, red, red)) {
+      background-color: color-mix(in oklab, var(--color-tag-red) 15%, transparent);
+    }
+  }
   .bg-transparent {
     background-color: transparent;
   }
@@ -1111,6 +1117,9 @@
   }
   .py-2\.5 {
     padding-block: calc(var(--spacing) * 2.5);
+  }
+  .py-2\.75 {
+    padding-block: calc(var(--spacing) * 2.75);
   }
   .py-3 {
     padding-block: calc(var(--spacing) * 3);
@@ -1338,6 +1347,9 @@
   }
   .text-tag-amber {
     color: var(--color-tag-amber);
+  }
+  .text-tag-red {
+    color: var(--color-tag-red);
   }
   .text-transparent {
     color: transparent;
